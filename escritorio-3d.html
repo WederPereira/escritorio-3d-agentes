@@ -1348,10 +1348,14 @@ function browserEl(name, title, home, search) {
   el.innerHTML = `<div class="bar nav">
       <button data-n="back" title="Voltar">◀</button><button data-n="forward" title="Avançar">▶</button>
       <button data-n="reload" title="Recarregar">⟳</button><button data-n="home" title="Início">⌂</button>
-      <input class="addr" value="${escapeHtml(home)}" spellcheck="false"><b>${title}</b></div>
+      <input class="addr" value="${escapeHtml(home)}" spellcheck="false"><button data-n="tab" title="Abrir esta página numa aba do Chrome">↗</button><b>${title}</b></div>
     <iframe name="${name}" src="${escapeHtml(home)}" allow="autoplay; encrypted-media; clipboard-read; clipboard-write; fullscreen; microphone; camera; picture-in-picture"></iframe>`;
   const fr = el.querySelector('iframe'), addr = el.querySelector('.addr');
-  el.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { if (b.dataset.n === 'home') fr.src = home; else escritorioApp.nav(name, b.dataset.n); });
+  el.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
+    if (b.dataset.n === 'home') fr.src = home;
+    else if (b.dataset.n === 'tab') window.open(addr.value || home, '_blank', 'noopener');
+    else escritorioApp.nav(name, b.dataset.n);
+  });
   addr.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
     let v = addr.value.trim(); if (!v) return;
