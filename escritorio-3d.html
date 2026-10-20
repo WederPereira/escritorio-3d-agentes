@@ -1368,9 +1368,10 @@ function buildApp() {
   const sheet = `https://docs.google.com/spreadsheets/d/${MEDIA.leadsSheet}/edit`;
   const cantinho = loadPref('cantinhoUrl', '');
   const homes = [
-    ['PC 1 · Relatório diário · Claude', 'https://claude.ai/new', GOOGLE],
-    ['PC 2 · Relatório semanal · Claude', 'https://claude.ai/new', GOOGLE],
-    ['PC 3 · Leads tráfego', sheet, GOOGLE],
+    // cada PC abre direto na sua tarefa agendada do Claude
+    ['PC 1 · Relatório diário', 'https://claude.ai/scheduled-task/trig_01RSLEJeCEcp9D76gRZxeknt', GOOGLE],
+    ['PC 2 · Relatório semanal', 'https://claude.ai/scheduled-task/trig_01YKtdXF71qzZUCosWJ64Ghm', GOOGLE],
+    ['PC 3 · Alerta de leads', 'https://claude.ai/scheduled-task/trig_017E6eYzRiJe6orTgvKpSGLd', GOOGLE],
     ['PC 4 · Agenda', 'https://calendar.google.com/calendar/r/agenda', GOOGLE],
     ['PC 5 · Agenda da semana', 'https://calendar.google.com/calendar/r/week', GOOGLE],
     ['PC 6 · Cantinho do Au Au', cantinho, GOOGLE],
