@@ -24,6 +24,7 @@ if (window === top) {
       else if (cmd === 'forward') history.forward();
       else if (cmd === 'reload') location.reload();
       else if (cmd === 'volume') { vol = Math.max(0, Math.min(1, +v || 0)); applyVol(); }
+      else if (cmd === 'replace' && typeof v === 'string' && /^https:\/\//.test(v)) location.replace(v);
       else if (cmd === 'click' && typeof v === 'string') {
         // clica no primeiro elemento que casar com o seletor, esperando até 10 s ele aparecer
         const t0 = Date.now();
