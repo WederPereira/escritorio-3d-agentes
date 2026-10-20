@@ -33,6 +33,27 @@
   .scr .panel .note { color: var(--muted); font-size: 18px; }
   .scr form { display: flex; gap: 10px; }
   .scr .big { font-size: 22px; padding: 12px 16px; }
+  .scr .ytwrap { flex: 1; position: relative; display: flex; min-height: 0; }
+  .scr .ytres { position: absolute; inset: 0; background: #0d1420; overflow-y: auto; z-index: 2; }
+  .scr .ytgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; padding: 22px 24px; }
+  .scr .ytitem { background: none; border: 0; color: var(--fg); text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; padding: 0; font: 600 17px/1.3 var(--display); }
+  .scr .ytitem img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; }
+  .scr .ytitem small { color: var(--muted); font-weight: 400; font-size: 15px; }
+  .scr .ytitem:hover span { color: var(--accent); }
+  .scr .sp-now { display: flex; gap: 14px; align-items: center; padding: 16px 18px; }
+  .scr .sp-now img { width: 84px; height: 84px; border-radius: 6px; background: #222; object-fit: cover; }
+  .scr .sp-now b { display: block; font-size: 18px; }
+  .scr .sp-now span { color: var(--muted); font-size: 15px; }
+  .scr .sp-ctl { display: flex; gap: 10px; justify-content: center; padding: 4px 0 12px; }
+  .scr .sp-ctl button { width: 64px; height: 48px; font-size: 22px; border-radius: 24px; border: 0; background: #2a3344; color: #fff; cursor: pointer; }
+  .scr .sp-ctl button.main { background: #1db954; color: #000; }
+  .scr .sp-list { flex: 1; overflow-y: auto; border-top: 1px solid #2a3344; }
+  .scr .sp-list button { display: flex; gap: 10px; align-items: center; width: 100%; padding: 8px 16px; background: none; border: 0; color: var(--fg); text-align: left; font: 15px var(--display); cursor: pointer; }
+  .scr .sp-list button:hover { background: #1b2433; }
+  .scr .sp-list img { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; background: #222; }
+  .scr .sp-msg { padding: 16px 18px; font-size: 15px; line-height: 1.5; display: flex; flex-direction: column; gap: 10px; }
+  .scr .sp-msg input { background: #0d1420; color: var(--fg); border: 1px solid #33405a; border-radius: 6px; padding: 9px 10px; font: 14px var(--mono); }
+  .scr .sp-msg code { font: 13px var(--mono); background: #1b2433; padding: 2px 6px; border-radius: 4px; overflow-wrap: anywhere; }
   #focusBar { position: absolute; z-index: 7; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
   .fail { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); font-size: 14px; line-height: 1.5; }
   .chip { position: absolute; font: 12px var(--mono); color: var(--muted); background: rgba(20,22,27,.85); border: 1px solid var(--line); padding: 6px 10px; border-radius: 6px; }
@@ -413,7 +434,7 @@ const screens = desks.map(([x, z]) => {
   box(0.08, 0.88, 1.1, '#8b6c4c', x - 1.15, 0.44, z);
   box(0.08, 0.88, 1.1, '#8b6c4c', x + 1.15, 0.44, z);
   box(1.0, 0.6, 0.06, '#101216', x, 1.36, z - 0.3);
-  box(0.12, 0.3, 0.12, '#101216', x, 1.06, z - 0.32);
+  box(0.12, 0.26, 0.1, '#101216', x, 1.06, z - 0.39); // suporte atrás do monitor, sem cobrir a tela
   box(0.6, 0.45, 0.6, '#2a2d35', x, 0.22, z + 0.95);
   const cv = document.createElement('canvas'); cv.width = 512; cv.height = 288;
   const tex = new THREE.CanvasTexture(cv);
@@ -1049,6 +1070,7 @@ function setView(v) {
 const pauseEl = document.getElementById('pause'), pauseMsg = document.getElementById('pauseMsg'), toastEl = document.getElementById('toast');
 let lockFailed = false;
 function play() { // chamado sempre dentro de um clique, que é o que o navegador exige
+  if (typeof reclaimKeyboard === 'function') reclaimKeyboard();
   if (isTouch) { pauseEl.hidden = true; return; }
   if (!document.fullscreenElement && stage.requestFullscreen) stage.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
   try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => lockError()); } catch (e) { lockError(); }
@@ -1341,16 +1363,59 @@ function cantinhoEl() {
 let ytPlayer = null, ytReady = false;
 const ytId = s => { const m = String(s).match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([\w-]{11})/) || String(s).match(/^([\w-]{11})$/); return m && m[1]; };
 const ytList = s => { const m = String(s).match(/[?&]list=([\w-]+)/); return m && m[1]; };
+// TV: barra com busca (YouTube Data API, chave grátis do usuário) e o player oficial do YouTube com todos os controles
 function tvEl() {
-  const el = screenEl('TV · YouTube', 'https://www.youtube.com', `<div class="yt"><div id="ytTV"></div></div>`);
-  el.querySelector('.bar').insertAdjacentHTML('beforeend', `<input id="tvIn" placeholder="cole um link do YouTube e aperte Enter">`);
-  el.querySelector('#tvIn').addEventListener('keydown', e => {
-    if (e.key !== 'Enter' || !ytReady) return;
-    const v = e.target.value, list = ytList(v), id = ytId(v);
-    if (list) ytPlayer.loadPlaylist({ list, listType: 'playlist' }); else if (id) ytPlayer.loadVideoById(id); else return;
-    savePref('tv', v); e.target.value = '';
-  });
+  const el = screenEl('TV · YouTube', 'https://www.youtube.com', `<div class="ytwrap"><div class="yt"><div id="ytTV"></div></div><div class="ytres" hidden></div></div>`);
+  const bar = el.querySelector('.bar');
+  bar.insertAdjacentHTML('beforeend', `<input id="tvIn" placeholder="buscar no YouTube ou colar um link"><button id="tvGo">Buscar</button>`);
+  const input = el.querySelector('#tvIn'), res = el.querySelector('.ytres');
+  const go = () => {
+    const v = input.value.trim(); if (!v) return;
+    const list = ytList(v), id = ytId(v);
+    if (list || id) { playOnTV(list ? { list } : { id }); savePref('tv', v); input.value = ''; return; }
+    ytSearch(v, res);
+  };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  el.querySelector('#tvGo').onclick = go;
   return el;
+}
+function playOnTV({ id, list }) {
+  if (!ytReady) return;
+  document.querySelector('.ytres').hidden = true;
+  if (list) ytPlayer.loadPlaylist({ list, listType: 'playlist' }); else ytPlayer.loadVideoById(id);
+}
+async function ytSearch(q, res) {
+  const key = loadPref('ytKey', '');
+  res.hidden = false;
+  if (!key) {
+    res.innerHTML = `<div class="panel">
+      <h3>Buscar vídeos aqui dentro</h3>
+      <div>O YouTube não deixa o site dele abrir dentro de outra página. Para buscar pela TV, o escritório usa a <b>chave da YouTube Data API</b>, que é grátis:</div>
+      <div class="note">1. Abra console.cloud.google.com e crie um projeto · 2. Ative "YouTube Data API v3" · 3. Em Credenciais, crie uma "Chave de API" · 4. Cole aqui:</div>
+      <form class="keyf"><input class="big" style="flex:1;min-width:0" placeholder="chave da API (AIza...)" required><button class="btn primary big">Salvar</button></form>
+      <div class="note">A chave fica só neste navegador. Sem ela, cole o link de um vídeo na barra de cima.</div>
+      <div><button class="btn big" data-close>Voltar ao vídeo</button></div></div>`;
+    res.querySelector('.keyf').onsubmit = e => { e.preventDefault(); savePref('ytKey', e.target.querySelector('input').value.trim()); ytSearch(q, res); };
+    res.querySelector('[data-close]').onclick = () => res.hidden = true;
+    return;
+  }
+  res.innerHTML = `<div class="panel"><div class="note">Buscando “${escapeHtml(q)}”…</div></div>`;
+  try {
+    const r = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&safeSearch=moderate&q=${encodeURIComponent(q)}&key=${encodeURIComponent(key)}`);
+    const j = await r.json();
+    if (!r.ok) throw new Error((j.error && j.error.message) || r.status);
+    res.innerHTML = `<div class="ytgrid">${(j.items || []).map(it => `
+      <button class="ytitem" data-id="${escapeHtml(it.id.videoId)}">
+        <img src="${escapeHtml(it.snippet.thumbnails.medium.url)}" alt="">
+        <span>${escapeHtml(htmlToText(it.snippet.title))}</span><small>${escapeHtml(htmlToText(it.snippet.channelTitle))}</small>
+      </button>`).join('')}</div><div style="padding:0 24px 20px"><button class="btn big" data-close>Voltar ao vídeo</button></div>`;
+    res.querySelectorAll('.ytitem').forEach(b => b.onclick = () => playOnTV({ id: b.dataset.id }));
+  } catch (err) {
+    res.innerHTML = `<div class="panel"><h3>A busca não funcionou</h3><div class="note">${escapeHtml(String(err.message || err))}</div>
+      <div><button class="btn big" data-reset>Trocar a chave</button> <button class="btn big" data-close>Voltar ao vídeo</button></div></div>`;
+    res.querySelector('[data-reset]').onclick = () => { savePref('ytKey', ''); ytSearch(q, res); };
+  }
+  const c = res.querySelector('[data-close]'); if (c) c.onclick = () => res.hidden = true;
 }
 function startYouTube() {
   window.onYouTubeIframeAPIReady = () => {
@@ -1364,16 +1429,117 @@ function startYouTube() {
   const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s);
 }
 const toEmbedSpotify = s => { const m = String(s).match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(?:embed\/)?(track|album|playlist|artist|show|episode)\/([A-Za-z0-9]+)/); return m && `https://open.spotify.com/embed/${m[1]}/${m[2]}`; };
-function spotifyEl() {
-  const src = toEmbedSpotify(loadPref('spotify', '')) || MEDIA.spotify;
-  const el = screenEl('Som · Spotify', 'https://open.spotify.com', `<iframe class="sp" src="${src}" allow="autoplay; encrypted-media; clipboard-write; fullscreen"></iframe>`);
-  el.querySelector('.bar').innerHTML = `<input placeholder="link do Spotify + Enter">`;
-  el.querySelector('input').addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
-    const v = toEmbedSpotify(e.target.value); if (!v) return;
-    el.querySelector('iframe').src = v; savePref('spotify', e.target.value); e.target.value = '';
+// Caixa de som: Spotify de verdade pelo Web Playback SDK (o escritório vira um aparelho "Escritório 3D" na sua conta).
+// Precisa de Spotify Premium e de um app grátis em developer.spotify.com (o Client ID é colado uma vez).
+const SP_REDIRECT = 'http://127.0.0.1:8765/escritorio-3d.html';
+const SP_SCOPES = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state playlist-read-private playlist-read-collaborative';
+const sp = { token: '', exp: 0, player: null, deviceId: '', state: null, vol: -1, el: null, err: '' };
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function spLogin() {
+  const clientId = loadPref('spClientId', '');
+  if (location.origin !== 'http://127.0.0.1:8765') { location.href = SP_REDIRECT; return; }
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  savePref('spVerifier', verifier);
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  location.href = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({
+    client_id: clientId, response_type: 'code', redirect_uri: SP_REDIRECT, scope: SP_SCOPES, code_challenge_method: 'S256', code_challenge: challenge,
   });
-  return el;
+}
+async function spTokenRequest(body) {
+  const r = await fetch('https://accounts.spotify.com/api/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body) });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error_description || j.error || r.status);
+  sp.token = j.access_token; sp.exp = Date.now() + j.expires_in * 1000;
+  if (j.refresh_token) savePref('spRefresh', j.refresh_token);
+  return sp.token;
+}
+async function spGetToken() {
+  if (sp.token && Date.now() < sp.exp - 60000) return sp.token;
+  const refresh = loadPref('spRefresh', '');
+  if (!refresh) throw new Error('sem login');
+  return spTokenRequest({ grant_type: 'refresh_token', refresh_token: refresh, client_id: loadPref('spClientId', '') });
+}
+async function spApi(path, method = 'GET', body) {
+  const r = await fetch('https://api.spotify.com/v1' + path, { method, headers: { Authorization: 'Bearer ' + await spGetToken(), 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 204) return null;
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw new Error((j && j.error && j.error.message) || r.status);
+  return j;
+}
+async function spBoot() {
+  const q = new URLSearchParams(location.search);
+  if (q.get('code')) {
+    try { await spTokenRequest({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: SP_REDIRECT, client_id: loadPref('spClientId', ''), code_verifier: loadPref('spVerifier', '') }); }
+    catch (e) { sp.err = 'O login no Spotify não deu certo: ' + e.message; }
+    history.replaceState(null, '', location.pathname);
+  } else if (q.get('error')) { sp.err = 'O Spotify recusou o login: ' + q.get('error'); history.replaceState(null, '', location.pathname); }
+  if (!loadPref('spRefresh', '')) { renderSpotify(); return; }
+  window.onSpotifyWebPlaybackSDKReady = () => {
+    sp.player = new Spotify.Player({ name: 'Escritório 3D', getOAuthToken: cb => spGetToken().then(cb).catch(() => {}), volume: 0.5 });
+    sp.player.addListener('ready', ({ device_id }) => { sp.deviceId = device_id; spApi('/me/player', 'PUT', { device_ids: [device_id], play: false }).catch(() => {}); renderSpotify(); spLoadPlaylists(); });
+    sp.player.addListener('not_ready', () => { sp.deviceId = ''; renderSpotify(); });
+    sp.player.addListener('player_state_changed', s => { sp.state = s; renderSpotify(); });
+    sp.player.addListener('account_error', () => { sp.err = 'O Spotify só deixa tocar dentro de outras páginas com conta Premium.'; renderSpotify(); });
+    sp.player.addListener('authentication_error', () => { sp.err = 'O login do Spotify expirou. Conecte de novo.'; savePref('spRefresh', ''); renderSpotify(); });
+    sp.player.addListener('initialization_error', e => { sp.err = 'O player do Spotify não iniciou neste navegador: ' + e.message; renderSpotify(); });
+    sp.player.connect();
+  };
+  const s = document.createElement('script'); s.src = 'https://sdk.scdn.co/spotify-player.js'; document.head.appendChild(s);
+  renderSpotify();
+}
+let spPlaylists = [];
+async function spLoadPlaylists() {
+  try { const j = await spApi('/me/playlists?limit=40'); spPlaylists = (j && j.items || []).filter(Boolean); } catch (e) { spPlaylists = []; }
+  renderSpotify();
+}
+async function spPlay(body) {
+  try { if (sp.player) sp.player.activateElement(); await spApi('/me/player/play?device_id=' + sp.deviceId, 'PUT', body); }
+  catch (e) { sp.err = 'Não deu para tocar: ' + e.message; renderSpotify(); }
+}
+function spotifyEl() {
+  sp.el = screenEl('Som · Spotify', 'https://open.spotify.com', '<div class="sp-body" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>');
+  renderSpotify();
+  return sp.el;
+}
+function renderSpotify() {
+  if (!sp.el) return;
+  const body = sp.el.querySelector('.sp-body'), clientId = loadPref('spClientId', ''), err = sp.err ? `<div class="warn" style="color:var(--accent)">${escapeHtml(sp.err)}</div>` : '';
+  if (!loadPref('spRefresh', '')) {
+    body.innerHTML = `<div class="sp-msg">${err}
+      <b style="font-size:17px">Ligar a caixa de som no seu Spotify</b>
+      <div>1. Entre em <code>developer.spotify.com/dashboard</code> e crie um app (grátis).</div>
+      <div>2. Em Redirect URI, coloque:<br><code>${SP_REDIRECT}</code></div>
+      <div>3. Marque "Web Playback SDK" e "Web API", salve e cole o Client ID:</div>
+      <input class="spid" placeholder="Client ID" value="${escapeHtml(clientId)}">
+      <button class="btn primary spgo">Conectar Spotify</button>
+      <div class="note" style="color:var(--muted)">Precisa de Spotify Premium. Enquanto isso, use o player simples:</div>
+      <button class="btn spsimple">Abrir player simples (sem volume por distância)</button></div>`;
+    body.querySelector('.spgo').onclick = () => { const v = body.querySelector('.spid').value.trim(); if (!v) return; savePref('spClientId', v); spLogin(); };
+    body.querySelector('.spsimple').onclick = () => {
+      const src = toEmbedSpotify(loadPref('spotify', '')) || MEDIA.spotify;
+      body.innerHTML = `<iframe src="${src}" allow="autoplay; encrypted-media; clipboard-write; fullscreen" style="flex:1;width:100%;border:0"></iframe>`;
+    };
+    return;
+  }
+  const s = sp.state, tr = s && s.track_window && s.track_window.current_track;
+  body.innerHTML = `${err ? `<div class="sp-msg">${err}</div>` : ''}
+    <div class="sp-now"><img src="${tr && tr.album.images[0] ? escapeHtml(tr.album.images[0].url) : ''}" alt="">
+      <div style="min-width:0"><b>${tr ? escapeHtml(tr.name) : sp.deviceId ? 'Escolha uma playlist' : 'Ligando a caixa de som…'}</b>
+      <span>${tr ? escapeHtml(tr.artists.map(a => a.name).join(', ')) : sp.deviceId ? 'Tocando no aparelho “Escritório 3D”' : ''}</span></div></div>
+    <div class="sp-ctl"><button data-a="prev">⏮</button><button class="main" data-a="toggle">${s && !s.paused ? '⏸' : '▶'}</button><button data-a="next">⏭</button></div>
+    <div style="padding:0 16px 10px;display:flex;gap:8px"><input class="splink" style="flex:1;min-width:0;background:#0d1420;color:var(--fg);border:1px solid #33405a;border-radius:6px;padding:8px;font:13px var(--mono)" placeholder="colar link do Spotify + Enter"></div>
+    <div class="sp-list">${spPlaylists.map(p => `<button data-uri="${escapeHtml(p.uri)}"><img src="${p.images && p.images[0] ? escapeHtml(p.images[0].url) : ''}" alt=""><span>${escapeHtml(p.name)}</span></button>`).join('')}</div>`;
+  body.querySelectorAll('.sp-ctl button').forEach(b => b.onclick = () => {
+    if (!sp.player) return; sp.player.activateElement();
+    ({ prev: () => sp.player.previousTrack(), next: () => sp.player.nextTrack(), toggle: () => sp.state ? sp.player.togglePlay() : spPlaylists[0] && spPlay({ context_uri: spPlaylists[0].uri }) })[b.dataset.a]();
+  });
+  body.querySelectorAll('.sp-list button').forEach(b => b.onclick = () => spPlay({ context_uri: b.dataset.uri }));
+  body.querySelector('.splink').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const m = e.target.value.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(track|album|playlist|artist|show|episode)\/([A-Za-z0-9]+)/); if (!m) return;
+    const uri = `spotify:${m[1]}:${m[2]}`;
+    spPlay(m[1] === 'track' || m[1] === 'episode' ? { uris: [uri] } : { context_uri: uri });
+  });
 }
 
 // som ambiente com posição: ar-condicionado, teclado de quem está trabalhando e a máquina de café
@@ -1416,6 +1582,12 @@ function updateAudio() {
     const i = deskSpots.indexOf(a.desk), pa = ambient.deskSounds[i];
     if (pa) pa.setVolume(a.status === 'working' && !a.path.length ? 0.9 : 0);
   });
+  // a caixa de som do Spotify: volume pela distância até a caixa mais próxima
+  if (sp.player && sp.deviceId) {
+    const d = Math.min(...speakerPos.map(p => camera.position.distanceTo(p)));
+    const v = !soundOn ? 0 : focusRef && focusRef.key === 'spotify' ? 0.8 : Math.max(0, Math.min(1, 2 / Math.max(2, d))) ** 1.3;
+    if (Math.abs(v - sp.vol) > 0.02) { sp.vol = v; sp.player.setVolume(v).catch(() => {}); }
+  }
   // a TV fica mais alta de perto e baixa de longe
   if (ytReady && ytPlayer.setVolume) {
     const d = camera.position.distanceTo(tvMesh.position);
@@ -1450,9 +1622,16 @@ function focusOn(f) {
   stage.classList.add('focused'); cssRenderer.domElement.classList.add('live');
   document.getElementById('focusBar').hidden = false; crossEl.hidden = true; tipEl.hidden = true;
 }
+// um iframe (YouTube, Spotify, agenda) que fica com o foco do teclado engole o WASD: devolve o foco para o escritório
+function reclaimKeyboard() {
+  const a = document.activeElement;
+  if (a && (a.tagName === 'IFRAME' || (a.closest && a.closest('.css3d')))) a.blur();
+  window.focus();
+}
 function unfocus() {
   if (!focusRef) return;
   focusRef = null;
+  reclaimKeyboard();
   stage.classList.remove('focused'); cssRenderer.domElement.classList.remove('live');
   document.getElementById('focusBar').hidden = true;
   if (mode === 'fp') { crossEl.hidden = false; play(); }
@@ -1468,7 +1647,7 @@ function updateFocus(dt) {
 }
 function focusByMesh(mesh) { const f = focusables.find(x => x.mesh === mesh); if (f) focusOn(f); return !!f; }
 
-if (EMBED) { buildEmbeds(); startYouTube(); }
+if (EMBED) { buildEmbeds(); startYouTube(); spBoot(); }
 
 // ================= loop =================
 function resize() {
@@ -1485,6 +1664,7 @@ function loop() {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
   agents.forEach(a => updateAgent(a, dt, t));
   pcs.forEach(pc => { if (pc.icon.visible) pc.icon.position.y = 2.25 + Math.sin(t * 3 + pc.i) * 0.08; });
+  if (!focusRef && document.activeElement && document.activeElement.tagName === 'IFRAME') reclaimKeyboard();
   if (focusRef) updateFocus(dt);
   else if (mode === 'fp') {
     updatePlayer(dt);

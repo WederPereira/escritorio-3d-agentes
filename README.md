@@ -6,7 +6,7 @@ Tudo fica em um único arquivo: [`escritorio-3d.html`](escritorio-3d.html). Ele 
 
 ## Como abrir
 
-Dê dois cliques em **`abrir-escritorio.bat`**. Ele liga um servidor local e abre o escritório no Chrome em http://localhost:8765/escritorio-3d.html.
+Dê dois cliques em **`abrir-escritorio.bat`**. Ele liga um servidor local e abre o escritório no Chrome em http://127.0.0.1:8765/escritorio-3d.html.
 
 Nessa versão do computador, os monitores, a TV e a caixa de som mostram sites de verdade:
 
@@ -21,7 +21,15 @@ Nessa versão do computador, os monitores, a TV e a caixa de som mostram sites d
 
 Clique num monitor, na TV ou no painel do Spotify para "sentar": a câmera vai até a tela e o mouse passa a usar o site. **Esc** ou **Levantar** volta a andar.
 
-O som ambiente tem posição: o teclado de quem está trabalhando, o ar-condicionado e a máquina de café ficam mais altos de perto. A TV também baixa o volume conforme você se afasta. O Spotify não deixa outra página mexer no volume, então ele toca sempre no mesmo volume.
+### TV com busca do YouTube
+
+O site do YouTube não pode abrir dentro de outra página, então a TV usa o player oficial do YouTube (com todos os controles) e uma busca própria. Para buscar, crie uma chave grátis da **YouTube Data API v3** em console.cloud.google.com e cole na TV na primeira busca. Sem chave, cole o link de um vídeo ou playlist.
+
+### Caixa de som com Spotify
+
+A caixa de som vira um aparelho chamado **Escritório 3D** na sua conta do Spotify, com playlists, controles e volume que muda com a distância. Precisa de **Spotify Premium** e de um app grátis em developer.spotify.com/dashboard com o Redirect URI `http://127.0.0.1:8765/escritorio-3d.html` (marque Web Playback SDK e Web API). Cole o Client ID no painel e clique em Conectar. Sem Premium, o painel tem um player simples.
+
+O som ambiente tem posição: o teclado de quem está trabalhando, o ar-condicionado e a máquina de café ficam mais altos de perto. A TV e a caixa de som do Spotify (conectada) também baixam o volume conforme você se afasta.
 
 Pela página do Claude (link do artifact), outros sites não podem aparecer dentro do escritório. Lá os computadores abrem as janelas do próprio escritório, com agenda e chat do Claude.
 
