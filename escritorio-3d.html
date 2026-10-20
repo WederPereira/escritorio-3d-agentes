@@ -13,10 +13,27 @@
   }
   [hidden] { display: none !important; }
   html, body { height: 100%; }
-  body { background: var(--bg); color: var(--fg); font-family: var(--display); }
+  body { background: var(--bg); color: var(--fg); font-family: var(--display); margin: 0; }
   .app { display: grid; grid-template-columns: minmax(0, 1fr); height: 100vh; min-height: 480px; }
   #stage { position: relative; min-width: 0; min-height: 420px; overflow: hidden; }
-  #stage canvas.scene { display: block; cursor: grab; }
+  #stage { background: var(--bg); }
+  #stage canvas.scene { display: block; cursor: grab; position: relative; z-index: 1; }
+  .css3d { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .css3d.live { pointer-events: auto; }
+  #stage.focused canvas.scene { pointer-events: none; }
+  .scr { background: #0d1420; color: var(--fg); display: flex; flex-direction: column; overflow: hidden; font-family: var(--display); }
+  .scr .bar { display: flex; align-items: center; gap: 12px; padding: 8px 14px; background: #1b2433; font: 600 18px var(--mono); color: var(--muted); flex: none; }
+  .scr .bar b { color: var(--fg); font-family: var(--display); font-size: 20px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scr .bar a, .scr .bar button { color: var(--fg); background: #2a3344; border: 0; border-radius: 6px; padding: 6px 12px; font: 600 16px var(--display); text-decoration: none; cursor: pointer; }
+  .scr .bar input { flex: 2; min-width: 0; background: #0d1420; color: var(--fg); border: 1px solid #33405a; border-radius: 6px; padding: 7px 10px; font: 16px var(--mono); }
+  .scr iframe, .scr .yt { flex: 1; width: 100%; border: 0; background: #000; }
+  .scr .panel { flex: 1; padding: 28px 34px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; font-size: 22px; line-height: 1.5; }
+  .scr .panel h3 { margin: 0; font-size: 34px; font-weight: 800; }
+  .scr .panel .st { font: 600 18px var(--mono); color: var(--muted); }
+  .scr .panel .note { color: var(--muted); font-size: 18px; }
+  .scr form { display: flex; gap: 10px; }
+  .scr .big { font-size: 22px; padding: 12px 16px; }
+  #focusBar { position: absolute; z-index: 7; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
   .fail { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); font-size: 14px; line-height: 1.5; }
   .chip { position: absolute; font: 12px var(--mono); color: var(--muted); background: rgba(20,22,27,.85); border: 1px solid var(--line); padding: 6px 10px; border-radius: 6px; }
   .hint { left: max(16px, env(safe-area-inset-left, 0px)); bottom: 14px; pointer-events: none; }
@@ -121,6 +138,10 @@
       <button class="btn primary" id="modeBtn">Andar pelo escritório</button>
       <button class="btn" id="viewBtn" hidden>Ver em 3ª pessoa</button>
       <button class="btn" id="brainBtn">Mapa do Segundo Cérebro</button>
+      <button class="btn" id="soundBtn">Som: ligado</button>
+    </div>
+    <div id="focusBar" hidden>
+      <button class="btn primary" id="unfocusBtn">Levantar (Esc)</button>
     </div>
     <div class="chip hint" id="hint">arraste para girar · role para zoom · clique num agente ou no quadro</div>
     <div id="crosshair" hidden></div>
@@ -198,6 +219,7 @@ if (!window.THREE) showFail('Não foi possível carregar a biblioteca 3D. Recarr
 else if (!document.createElement('canvas').getContext('webgl')) showFail('Seu navegador está com WebGL desativado, por isso o 3D não aparece. Ative a aceleração de hardware ou abra em outro navegador.');
 </script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
 <script>
 // ================= Segundo Cérebro (lido da pasta "segundo cerebro" em 20/10/2026) =================
 const FOLDERS = [
@@ -339,11 +361,15 @@ const TEAM = [
 
 const stage = document.getElementById('stage');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#14161b');
+// Fora do Claude (Chrome no computador) os monitores, a TV e a caixa de som mostram sites de verdade (CSS3D por trás do WebGL).
+// Dentro do Claude outros sites não podem ser incorporados, então lá ficam as janelas do próprio escritório.
+const EMBED = !(window.claude && typeof window.claude.use === 'function') && !!THREE.CSS3DRenderer;
+if (!EMBED) scene.background = new THREE.Color('#14161b');
 const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 200);
 camera.rotation.order = 'YXZ';
 camera.position.set(11, 15, 17);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: EMBED });
+if (EMBED) renderer.setClearColor(0x000000, 0);
 renderer.domElement.className = 'scene';
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
@@ -1039,7 +1065,7 @@ document.addEventListener('pointerlockchange', () => {
   const locked = !!document.pointerLockElement;
   renderer.domElement.style.cursor = locked ? 'none' : 'default';
   if (locked) { lockFailed = false; pauseEl.hidden = true; pauseMsg.className = ''; }
-  else if (brainEl.hidden && pcWin.hidden) { pauseEl.hidden = false; Object.keys(keys).forEach(k => keys[k] = false); }
+  else if (brainEl.hidden && pcWin.hidden && !focusRef) { pauseEl.hidden = false; Object.keys(keys).forEach(k => keys[k] = false); }
   fpHint();
 });
 document.addEventListener('fullscreenchange', () => {
@@ -1082,7 +1108,9 @@ function exitFP() {
 modeBtn.onclick = () => mode === 'fp' ? exitFP() : enterFP();
 viewBtn.onclick = () => setView(view === 1 ? 3 : 1);
 addEventListener('keydown', e => {
+  if (e.code === 'Escape' && focusRef) { unfocus(); return; }
   if (e.target.closest && e.target.closest('input, textarea')) return;
+  if (focusRef) return;
   if (e.code === 'Escape' && !brainEl.hidden) { closeBrain(false); return; }
   if (e.code === 'Escape' && !pcWin.hidden) { closePc(false); return; }
   if (!pcWin.hidden) return; // janela do PC aberta: teclado é do chat
@@ -1151,6 +1179,7 @@ function pick(x, y) {
     const view = { s: 1, ox: 0, oy: 0 };
     return { board: true, node: nodeAt(h.uv.x * BW, (1 - h.uv.y) * BH, view, 40), dist: h.distance };
   }
+  if (h.object.userData.media) return { media: h.object.userData.media, mesh: h.object, dist: h.distance };
   if (h.object.userData.pc != null) return { pc: pcs[h.object.userData.pc], dist: h.distance };
   return { agent: agents.find(a => a.id === h.object.userData.agentId), dist: h.distance };
 }
@@ -1161,6 +1190,8 @@ function screenToNdc(e) {
 }
 function act(hit) {
   if (!hit) { select(null); return; }
+  if (EMBED && (hit.pc || hit.media) && focusByMesh(hit.pc ? hit.pc.screen : hit.mesh)) return;
+  if (hit.media) { toast('A TV e o Spotify funcionam na versão do computador: abra o escritório pelo <b>abrir-escritorio.bat</b> no Chrome.'); return; }
   if (hit.pc) { openPc(hit.pc); return; }
   if (hit.agent) {
     select(hit.agent);
@@ -1200,28 +1231,271 @@ addEventListener('pointerup', e => {
   act(pick(...screenToNdc(e)));
 });
 
+// ================= telas de verdade, TV, caixa de som e som ambiente =================
+const MEDIA = {
+  calendarId: 'auau.mkt@gmail.com',
+  leadsSheet: '177fMfC3W8Te1uehBf7UpwglXMpcE8wiqlRqoVyD1mj8',
+  tvVideo: 'lTRiuFIWV54',                       // Lofi Girl · 1 A.M Study Session
+  spotify: 'https://open.spotify.com/embed/playlist/37i9dQZF1DWWQRwui0ExPn', // Lofi Beats
+};
+const loadPref = (k, d) => { try { return localStorage.getItem('escritorio.' + k) || d; } catch (e) { return d; } };
+const savePref = (k, v) => { try { localStorage.setItem('escritorio.' + k, v); } catch (e) {} };
+
+// TV na parede do fundo (sala de reunião) e painel do Spotify na parede da esquerda, com caixas de som no chão
+box(3.9, 2.32, 0.1, '#0b0c0f', 5.4, 2.1, -6.98);
+const tvMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.7, 2.08), new THREE.MeshBasicMaterial({ color: '#111' }));
+tvMesh.position.set(5.4, 2.1, -6.92); scene.add(tvMesh);
+box(0.1, 2.15, 1.85, '#0b0c0f', -10.0, 2.0, 4.2);
+const spMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 2.0), new THREE.MeshBasicMaterial({ color: '#121212' }));
+spMesh.rotation.y = Math.PI / 2; spMesh.position.set(-9.94, 2.0, 4.2); scene.add(spMesh);
+const speakerPos = [];
+[[-9.45, 2.85], [-9.45, 5.55]].forEach(([x, z]) => {
+  box(0.7, 1.1, 0.7, '#1c1e24', x, 0.55, z, true);
+  [0.78, 0.36].forEach((y, k) => {
+    const cone = new THREE.Mesh(new THREE.CircleGeometry(k ? 0.24 : 0.14, 24), new THREE.MeshStandardMaterial({ color: '#3a3d46', roughness: 0.4 }));
+    cone.rotation.y = Math.PI / 2; cone.position.set(x + 0.36, y, z); scene.add(cone);
+  });
+  speakerPos.push(new THREE.Vector3(x, 0.8, z));
+});
+tvMesh.userData.media = 'tv'; spMesh.userData.media = 'spotify';
+pickables.push(tvMesh, spMesh);
+
+const cssScene = new THREE.Scene();
+let cssRenderer = null;
+const focusables = []; // {key, mesh, w, h, el}
+function addScreen(key, mesh, pxW, el) {
+  const p = mesh.geometry.parameters;
+  el.style.width = pxW + 'px'; el.style.height = Math.round(pxW * p.height / p.width) + 'px';
+  const obj = new THREE.CSS3DObject(el);
+  const s = p.width / pxW; obj.scale.set(s, s, s);
+  mesh.updateWorldMatrix(true, false);
+  mesh.getWorldPosition(obj.position); mesh.getWorldQuaternion(obj.quaternion);
+  cssScene.add(obj);
+  // o plano no WebGL vira um "buraco" transparente, por onde aparece a página que está atrás
+  mesh.material = new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0, blending: THREE.NoBlending });
+  const f = { key, mesh, w: p.width, h: p.height, el }; focusables.push(f); return f;
+}
+function screenEl(title, link, bodyHtml) {
+  const el = document.createElement('div'); el.className = 'scr';
+  el.innerHTML = `<div class="bar"><b>${title}</b>${link ? `<a href="${link}" target="_blank" rel="noopener">abrir em nova aba ↗</a>` : ''}</div>${bodyHtml}`;
+  return el;
+}
+const frame = src => `<iframe src="${src}" allow="autoplay; encrypted-media; clipboard-write; fullscreen" loading="lazy"></iframe>`;
+
+function buildEmbeds() {
+  cssRenderer = new THREE.CSS3DRenderer();
+  cssRenderer.domElement.className = 'css3d';
+  stage.insertBefore(cssRenderer.domElement, renderer.domElement);
+  const cal = mode => `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(MEDIA.calendarId)}&ctz=America%2FSao_Paulo&mode=${mode}&showTitle=0&showPrint=0&bgcolor=%23ffffff`;
+  const sheet = `https://docs.google.com/spreadsheets/d/${MEDIA.leadsSheet}`;
+  pcs.forEach(pc => {
+    let el;
+    if (pc.kind === 'task' && pc.taskId === 'leads') el = screenEl('PC 3 · Alerta de novos leads · planilha Leads trafego', sheet + '/edit', frame(sheet + '/edit?rm=minimal'));
+    else if (pc.kind === 'task') el = taskPanel(pc);
+    else if (pc.i === 3) el = screenEl('PC 4 · Agenda · próximos compromissos', 'https://calendar.google.com', frame(cal('AGENDA')));
+    else if (pc.i === 4) el = screenEl('PC 5 · Agenda · semana', 'https://calendar.google.com', frame(cal('WEEK')));
+    else el = cantinhoEl();
+    addScreen('pc' + pc.i, pc.screen, 1152, el);
+    pc.icon.visible = false; pc.badge = null;
+  });
+  addScreen('tv', tvMesh, 1280, tvEl());
+  addScreen('spotify', spMesh, 420, spotifyEl());
+  resize();
+}
+const TAREFAS_LOCAL = {
+  diario: { titulo: 'Cantinho do Auau — Relatório Diário (18h)', status: 'Ativo', recorrencia: 'Segunda a sábado às 17:51', descricao: 'Assistente de operações do Cantinho do Auau: creche, hotel, banho e tosa de cães.' },
+  semanal: { titulo: 'Relatório semanal métricas creche', status: 'Pausado', recorrencia: 'Toda segunda-feira às 8:00', descricao: 'Relatório semanal de métricas de marketing da Mentoria Creche Milionária.' },
+};
+function taskPanel(pc) {
+  const t = TAREFAS_LOCAL[pc.taskId], [ico] = TASK_META[pc.taskId];
+  return screenEl(`PC ${pc.i + 1} · Tarefa agendada do Claude`, null, `
+    <div class="panel">
+      <div style="font-size:64px;line-height:1">${ico}</div>
+      <h3>${t.titulo}</h3>
+      <div class="st">${t.status === 'Ativo' ? '● ATIVA' : '○ PAUSADA'} · ${t.recorrencia}</div>
+      <div>${t.descricao}</div>
+      <div class="note">Esta tarefa roda no Claude Desktop. Para executar agora, pausar ou ler os relatórios, abra <b>Agendadas</b> no app do Claude.</div>
+    </div>`);
+}
+function cantinhoEl() {
+  const url = loadPref('cantinhoUrl', '');
+  const el = screenEl('PC 6 · Sistema Cantinho do Au Au', url || null, url ? frame(url) : `
+    <div class="panel">
+      <div style="font-size:64px;line-height:1">🐾</div>
+      <h3>Sistema Cantinho do Au Au</h3>
+      <div>Cole o endereço do sistema para ele ficar aberto neste computador.</div>
+      <form class="urlf"><input class="big" style="flex:1;min-width:0" type="url" placeholder="https://..." required><button class="btn primary big">Abrir aqui</button></form>
+      <div class="note">Se o sistema não aparecer depois de salvar, ele bloqueia ser aberto dentro de outras páginas. Aí use "abrir em nova aba".</div>
+    </div>`);
+  const f = el.querySelector('.urlf');
+  if (f) f.onsubmit = e => {
+    e.preventDefault();
+    const v = f.querySelector('input').value.trim(); if (!/^https?:\/\//i.test(v)) return;
+    savePref('cantinhoUrl', v);
+    el.innerHTML = screenEl('PC 6 · Sistema Cantinho do Au Au', v, frame(v)).innerHTML;
+  };
+  return el;
+}
+
+// TV: YouTube com API, para o volume mudar com a distância
+let ytPlayer = null, ytReady = false;
+const ytId = s => { const m = String(s).match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([\w-]{11})/) || String(s).match(/^([\w-]{11})$/); return m && m[1]; };
+const ytList = s => { const m = String(s).match(/[?&]list=([\w-]+)/); return m && m[1]; };
+function tvEl() {
+  const el = screenEl('TV · YouTube', 'https://www.youtube.com', `<div class="yt"><div id="ytTV"></div></div>`);
+  el.querySelector('.bar').insertAdjacentHTML('beforeend', `<input id="tvIn" placeholder="cole um link do YouTube e aperte Enter">`);
+  el.querySelector('#tvIn').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || !ytReady) return;
+    const v = e.target.value, list = ytList(v), id = ytId(v);
+    if (list) ytPlayer.loadPlaylist({ list, listType: 'playlist' }); else if (id) ytPlayer.loadVideoById(id); else return;
+    savePref('tv', v); e.target.value = '';
+  });
+  return el;
+}
+function startYouTube() {
+  window.onYouTubeIframeAPIReady = () => {
+    const saved = loadPref('tv', ''), list = ytList(saved), id = ytId(saved) || MEDIA.tvVideo;
+    ytPlayer = new YT.Player('ytTV', {
+      width: '100%', height: '100%', videoId: list ? undefined : id,
+      playerVars: Object.assign({ autoplay: 1, mute: 1, playsinline: 1, rel: 0, modestbranding: 1 }, list ? { listType: 'playlist', list } : {}),
+      events: { onReady: () => { ytReady = true; ytPlayer.mute(); ytPlayer.playVideo(); } },
+    });
+  };
+  const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s);
+}
+const toEmbedSpotify = s => { const m = String(s).match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(?:embed\/)?(track|album|playlist|artist|show|episode)\/([A-Za-z0-9]+)/); return m && `https://open.spotify.com/embed/${m[1]}/${m[2]}`; };
+function spotifyEl() {
+  const src = toEmbedSpotify(loadPref('spotify', '')) || MEDIA.spotify;
+  const el = screenEl('Som · Spotify', 'https://open.spotify.com', `<iframe class="sp" src="${src}" allow="autoplay; encrypted-media; clipboard-write; fullscreen"></iframe>`);
+  el.querySelector('.bar').innerHTML = `<input placeholder="link do Spotify + Enter">`;
+  el.querySelector('input').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const v = toEmbedSpotify(e.target.value); if (!v) return;
+    el.querySelector('iframe').src = v; savePref('spotify', e.target.value); e.target.value = '';
+  });
+  return el;
+}
+
+// som ambiente com posição: ar-condicionado, teclado de quem está trabalhando e a máquina de café
+let soundOn = true, listener = null, ambient = null;
+function noiseBuffer(ctx, secs, brown) {
+  const b = ctx.createBuffer(1, ctx.sampleRate * secs, ctx.sampleRate), d = b.getChannelData(0); let last = 0;
+  for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; if (brown) { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w; }
+  return b;
+}
+function typingBuffer(ctx) {
+  const secs = 4, b = ctx.createBuffer(1, ctx.sampleRate * secs, ctx.sampleRate), d = b.getChannelData(0);
+  let t = 0.05;
+  while (t < secs - 0.05) {
+    const start = Math.floor(t * ctx.sampleRate), len = Math.floor(0.012 * ctx.sampleRate), amp = 0.25 + Math.random() * 0.35;
+    for (let i = 0; i < len; i++) d[start + i] += (Math.random() * 2 - 1) * amp * Math.exp(-i / (len / 5));
+    t += Math.random() < 0.12 ? 0.35 + Math.random() * 0.5 : 0.07 + Math.random() * 0.11;
+  }
+  return b;
+}
+function startAudio() {
+  if (listener) { if (listener.context.state === 'suspended') listener.context.resume(); return; }
+  listener = new THREE.AudioListener(); camera.add(listener);
+  const ctx = listener.context;
+  const hum = new THREE.Audio(listener); hum.setBuffer(noiseBuffer(ctx, 3, true)); hum.setLoop(true); hum.setVolume(0.06); hum.play();
+  const typing = typingBuffer(ctx);
+  const deskSounds = screens.map((s, i) => {
+    const pa = new THREE.PositionalAudio(listener);
+    pa.setBuffer(typing); pa.setLoop(true); pa.setRefDistance(1.2); pa.setRolloffFactor(2); pa.setVolume(0);
+    pa.offset = Math.random() * 3; pa.play(); s.add(pa); return pa;
+  });
+  const coffee = new THREE.PositionalAudio(listener);
+  coffee.setBuffer(noiseBuffer(ctx, 2, true)); coffee.setLoop(true); coffee.setRefDistance(0.8); coffee.setRolloffFactor(2.5); coffee.setVolume(0.5); coffee.play();
+  const cm = new THREE.Object3D(); cm.position.set(7.4, 1.3, 6.45); scene.add(cm); cm.add(coffee);
+  ambient = { deskSounds };
+  listener.setMasterVolume(soundOn ? 1 : 0);
+}
+function updateAudio() {
+  if (!listener) return;
+  agents.forEach(a => {
+    const i = deskSpots.indexOf(a.desk), pa = ambient.deskSounds[i];
+    if (pa) pa.setVolume(a.status === 'working' && !a.path.length ? 0.9 : 0);
+  });
+  // a TV fica mais alta de perto e baixa de longe
+  if (ytReady && ytPlayer.setVolume) {
+    const d = camera.position.distanceTo(tvMesh.position);
+    const vol = focusRef && focusRef.key === 'tv' ? 100 : Math.round(100 * Math.max(0, Math.min(1, 1.6 / Math.max(1.6, d))) ** 1.2);
+    if (!soundOn) ytPlayer.mute(); else { if (ytPlayer.isMuted()) ytPlayer.unMute(); ytPlayer.setVolume(vol); }
+  }
+}
+document.getElementById('soundBtn').onclick = () => {
+  soundOn = !soundOn;
+  document.getElementById('soundBtn').textContent = 'Som: ' + (soundOn ? 'ligado' : 'desligado');
+  startAudio(); listener.setMasterVolume(soundOn ? 1 : 0); updateAudio();
+};
+addEventListener('pointerdown', startAudio, { once: true });
+addEventListener('keydown', startAudio, { once: true });
+
+// sentar no computador / chegar perto da TV: a câmera vai até a tela e o mouse passa a usar a página
+let focusRef = null;
+const focusFrom = { pos: new THREE.Vector3(), quat: new THREE.Quaternion(), target: new THREE.Vector3() }, focusTo = { pos: new THREE.Vector3(), quat: new THREE.Quaternion() };
+let focusT = 1;
+function focusOn(f) {
+  if (document.pointerLockElement) document.exitPointerLock();
+  pauseEl.hidden = true; startAudio();
+  focusRef = f; focusT = 0;
+  focusFrom.pos.copy(camera.position); focusFrom.quat.copy(camera.quaternion); focusFrom.target.copy(controls.target);
+  const c = new THREE.Vector3(), q = new THREE.Quaternion();
+  f.mesh.getWorldPosition(c); f.mesh.getWorldQuaternion(q);
+  const n = new THREE.Vector3(0, 0, 1).applyQuaternion(q), tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const dist = Math.max((f.h / 2) / tan, (f.w / 2) / (tan * camera.aspect)) * 1.14;
+  focusTo.pos.copy(c).addScaledVector(n, dist);
+  const m = new THREE.Matrix4().lookAt(focusTo.pos, c, new THREE.Vector3(0, 1, 0)); focusTo.quat.setFromRotationMatrix(m);
+  controls.enabled = false;
+  stage.classList.add('focused'); cssRenderer.domElement.classList.add('live');
+  document.getElementById('focusBar').hidden = false; crossEl.hidden = true; tipEl.hidden = true;
+}
+function unfocus() {
+  if (!focusRef) return;
+  focusRef = null;
+  stage.classList.remove('focused'); cssRenderer.domElement.classList.remove('live');
+  document.getElementById('focusBar').hidden = true;
+  if (mode === 'fp') { crossEl.hidden = false; play(); }
+  else { camera.position.copy(focusFrom.pos); camera.quaternion.copy(focusFrom.quat); controls.target.copy(focusFrom.target); controls.enabled = true; }
+}
+document.getElementById('unfocusBtn').onclick = unfocus;
+function updateFocus(dt) {
+  if (focusT >= 1) return;
+  focusT = Math.min(1, focusT + dt / 0.6);
+  const k = 1 - Math.pow(1 - focusT, 3);
+  camera.position.lerpVectors(focusFrom.pos, focusTo.pos, k);
+  camera.quaternion.slerpQuaternions(focusFrom.quat, focusTo.quat, k);
+}
+function focusByMesh(mesh) { const f = focusables.find(x => x.mesh === mesh); if (f) focusOn(f); return !!f; }
+
+if (EMBED) { buildEmbeds(); startYouTube(); }
+
 // ================= loop =================
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+  if (cssRenderer) cssRenderer.setSize(w, h);
   if (!brainEl.hidden) renderBrainOverlay();
 }
 new ResizeObserver(resize).observe(stage); resize();
 
 const clock = new THREE.Clock();
-let tipT = 0;
+let tipT = 0, audioT = 0;
 function loop() {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
   agents.forEach(a => updateAgent(a, dt, t));
   pcs.forEach(pc => { if (pc.icon.visible) pc.icon.position.y = 2.25 + Math.sin(t * 3 + pc.i) * 0.08; });
-  if (mode === 'fp') {
+  if (focusRef) updateFocus(dt);
+  else if (mode === 'fp') {
     updatePlayer(dt);
     if ((tipT += dt) > 0.1) {
       tipT = 0;
       const hit = pick(0, 0);
       setBoardHi(hit && hit.board ? hit.node : null);
       let txt = '';
-      if (hit && hit.pc && hit.dist < 8) txt = hit.pc.kind === 'site' ? 'Sistema Cantinho do Au Au · clique para abrir'
+      if (hit && hit.media && hit.dist < 12) txt = hit.media === 'tv' ? 'TV · clique para assistir' : 'Caixa de som · Spotify · clique para escolher a música';
+      else if (hit && hit.pc && hit.dist < 8 && EMBED) txt = `PC ${hit.pc.i + 1} · clique para sentar e usar`;
+      else if (hit && hit.pc && hit.dist < 8) txt = hit.pc.kind === 'site' ? 'Sistema Cantinho do Au Au · clique para abrir'
         : hit.pc.kind === 'task' ? `PC ${hit.pc.i + 1} · ${(hit.pc.task && hit.pc.task.titulo) || TASK_META[hit.pc.taskId][1]} · clique para abrir`
         : hit.pc.ev ? `PC ${hit.pc.i + 1} · ${hit.pc.ev.summary || 'compromisso'} · clique para abrir` : `PC ${hit.pc.i + 1} · agenda`;
       else if (hit && hit.agent && hit.dist < 10) txt = `${hit.agent.name} · ${STATUS[hit.agent.status].txt} · clique para ver`;
@@ -1229,7 +1503,9 @@ function loop() {
       tipEl.textContent = txt; tipEl.hidden = !txt;
     }
   } else controls.update();
+  if ((audioT += dt) > 0.2) { audioT = 0; updateAudio(); }
   renderer.render(scene, camera);
+  if (cssRenderer) cssRenderer.render(cssScene, camera);
   requestAnimationFrame(loop);
 }
 renderList(); renderDetail(); drawBoard(); drawBrainBoard();

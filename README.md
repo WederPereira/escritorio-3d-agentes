@@ -6,13 +6,24 @@ Tudo fica em um único arquivo: [`escritorio-3d.html`](escritorio-3d.html). Ele 
 
 ## Como abrir
 
-Abra `escritorio-3d.html` direto no navegador, ou sirva a pasta localmente:
+Dê dois cliques em **`abrir-escritorio.bat`**. Ele liga um servidor local e abre o escritório no Chrome em http://localhost:8765/escritorio-3d.html.
 
-```bash
-python -m http.server 8765
-```
+Nessa versão do computador, os monitores, a TV e a caixa de som mostram sites de verdade:
 
-Depois acesse http://localhost:8765/escritorio-3d.html.
+| Objeto | O que abre |
+| --- | --- |
+| PC 1 e PC 2 | painel das tarefas agendadas do Claude (relatório diário e semanal) |
+| PC 3 | planilha "Leads trafego" do Google Sheets |
+| PC 4 e PC 5 | Google Agenda (lista e semana) |
+| PC 6 | sistema do Cantinho do Au Au (cole o endereço na primeira vez) |
+| TV | YouTube (cole um link na barra de cima) |
+| Caixa de som | Spotify (cole um link de playlist, álbum ou música) |
+
+Clique num monitor, na TV ou no painel do Spotify para "sentar": a câmera vai até a tela e o mouse passa a usar o site. **Esc** ou **Levantar** volta a andar.
+
+O som ambiente tem posição: o teclado de quem está trabalhando, o ar-condicionado e a máquina de café ficam mais altos de perto. A TV também baixa o volume conforme você se afasta. O Spotify não deixa outra página mexer no volume, então ele toca sempre no mesmo volume.
+
+Pela página do Claude (link do artifact), outros sites não podem aparecer dentro do escritório. Lá os computadores abrem as janelas do próprio escritório, com agenda e chat do Claude.
 
 ## Controles
 
