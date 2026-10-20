@@ -1,37 +1,20 @@
-# Os computadores virtuais do escritório: cada um é um Linux (Ubuntu + XFCE) com área de trabalho
-# que abre no navegador. Só respondem neste computador (127.0.0.1). Os arquivos de cada PC ficam em pcs/.
-x-pc: &pc
-  image: lscr.io/linuxserver/webtop:ubuntu-xfce
-  environment:
-    - PUID=1000
-    - PGID=1000
-    - TZ=America/Sao_Paulo
-    - LC_ALL=pt_BR.UTF-8
-  shm_size: "1gb"
-  mem_limit: 2g
-  security_opt:
-    - seccomp:unconfined
-  restart: unless-stopped
-
+# Computador virtual do escritório: um Linux (Ubuntu + XFCE) com área de trabalho que abre no navegador.
+# Só responde neste computador (127.0.0.1). Os arquivos do PC ficam em pcs/pc1.
+# Para mais PCs, copie o bloco pc1 trocando nome, porta (3002, 3003...) e pasta, e acrescente em VMS no escritorio-3d.html.
 services:
   pc1:
-    <<: *pc
+    image: linuxserver/webtop:ubuntu-xfce   # mesma imagem do lscr.io, pelo Docker Hub (o lscr.io travou aqui)
     container_name: escritorio-pc1
     hostname: pc1
-    environment: [PUID=1000, PGID=1000, TZ=America/Sao_Paulo, TITLE=PC 1]
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Sao_Paulo
+      - TITLE=PC 1
+    shm_size: "1gb"
+    mem_limit: 3g
+    security_opt:
+      - seccomp:unconfined
     ports: ["127.0.0.1:3001:3000"]
     volumes: ["./pcs/pc1:/config"]
-  pc2:
-    <<: *pc
-    container_name: escritorio-pc2
-    hostname: pc2
-    environment: [PUID=1000, PGID=1000, TZ=America/Sao_Paulo, TITLE=PC 2]
-    ports: ["127.0.0.1:3002:3000"]
-    volumes: ["./pcs/pc2:/config"]
-  pc5:
-    <<: *pc
-    container_name: escritorio-pc5
-    hostname: pc5
-    environment: [PUID=1000, PGID=1000, TZ=America/Sao_Paulo, TITLE=PC 5]
-    ports: ["127.0.0.1:3005:3000"]
-    volumes: ["./pcs/pc5:/config"]
+    restart: unless-stopped

@@ -1365,7 +1365,7 @@ function browserEl(name, title, home, search) {
 if (APP) escritorioApp.onFrameUrl((name, url) => { const a = frameAddr[name]; if (a && document.activeElement !== a) a.value = url; });
 const GOOGLE = 'https://www.google.com/search?q=';
 // PCs virtuais (Linux no Docker, ver docker-compose.yml): índice do PC -> endereço da área de trabalho
-const VMS = { 0: 'http://127.0.0.1:3001/', 1: 'http://127.0.0.1:3002/', 4: 'http://127.0.0.1:3005/' };
+const VMS = { 0: 'http://127.0.0.1:3001/' };
 function vmEl(pc) {
   const url = VMS[pc.i], name = 'pc' + pc.i;
   const el = document.createElement('div'); el.className = 'scr';
