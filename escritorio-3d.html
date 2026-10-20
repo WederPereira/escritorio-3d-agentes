@@ -1,0 +1,779 @@
+<meta charset="utf-8">
+<title>Escritório dos Agentes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Layout: cena 3D ocupando a tela + painel lateral de controle (empilha no celular); mapa do Segundo Cérebro abre por cima da cena */
+  :root {
+    --bg: #14161b; --panel: #1b1e25; --line: #2c303a; --fg: #e8eaef; --muted: #8d95a5;
+    --accent: #f2b54a; --ok: #4cc38a; --info: #5aa3f0; --idle: #a0a7b3;
+    --display: 'Manrope', system-ui, sans-serif; --mono: 'JetBrains Mono', ui-monospace, monospace;
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--display); }
+  .app { display: grid; grid-template-columns: minmax(0, 1fr) 330px; height: 100vh; min-height: 560px; }
+  #stage { position: relative; min-width: 0; min-height: 420px; overflow: hidden; }
+  #stage canvas.scene { display: block; cursor: grab; }
+  .fail { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .chip { position: absolute; font: 12px var(--mono); color: var(--muted); background: rgba(20,22,27,.85); border: 1px solid var(--line); padding: 6px 10px; border-radius: 6px; }
+  .hint { left: max(16px, env(safe-area-inset-left, 0px)); bottom: 14px; pointer-events: none; }
+  .modebar { position: absolute; top: 14px; left: max(16px, env(safe-area-inset-left, 0px)); display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { background: #262a33; color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 12px; font: 600 13px var(--display); cursor: pointer; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #1a1405; border-color: var(--accent); }
+  .btn:focus-visible, .agent-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #crosshair { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; pointer-events: none; }
+  #crosshair::before, #crosshair::after { content: ""; position: absolute; background: #fff; opacity: .85; }
+  #crosshair::before { left: 6px; top: 0; width: 2px; height: 14px; }
+  #crosshair::after { top: 6px; left: 0; height: 2px; width: 14px; }
+  #tip { left: 50%; top: calc(50% + 22px); transform: translateX(-50%); color: var(--fg); pointer-events: none; white-space: nowrap; max-width: 90%; overflow: hidden; text-overflow: ellipsis; }
+  .touchpad { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .touchpad .btn { width: 52px; height: 44px; font-size: 18px; touch-action: none; }
+  aside { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
+          padding-block: 18px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  h1 { font-size: 19px; font-weight: 800; margin: 0; text-wrap: balance; }
+  .sub { color: var(--muted); font-size: 13px; margin: 4px 0 0; line-height: 1.45; }
+  .label { font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+  .list { display: flex; flex-direction: column; gap: 4px; }
+  .agent-btn { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 10px; width: 100%; text-align: left;
+               background: transparent; color: var(--fg); border: 1px solid transparent; border-radius: 8px; padding: 8px 10px; font: inherit; cursor: pointer; }
+  .agent-btn:hover { background: #232730; }
+  .agent-btn[aria-pressed="true"] { border-color: var(--accent); background: #262a33; }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; }
+  .name { font-weight: 600; font-size: 14px; }
+  .role { color: var(--muted); font-size: 12px; }
+  .pill { font: 600 11px var(--mono); padding: 3px 8px; border-radius: 99px; white-space: nowrap; }
+  .s-working { background: rgba(76,195,138,.15); color: var(--ok); }
+  .s-meeting { background: rgba(90,163,240,.15); color: var(--info); }
+  .s-idle { background: rgba(160,167,179,.14); color: var(--idle); }
+  .s-walking { background: rgba(242,181,74,.15); color: var(--accent); }
+  .detail, .brain-card { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .detail .task { font-size: 13px; line-height: 1.45; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .actions .btn { padding: 7px 10px; font-size: 12px; }
+  .stats { display: flex; gap: 16px; font-variant-numeric: tabular-nums; }
+  .stats b { display: block; font-size: 20px; }
+  .stats span { color: var(--muted); font-size: 12px; }
+  .log { font: 12px/1.5 var(--mono); color: var(--muted); margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; max-height: 190px; overflow-y: auto; }
+  .log b { color: var(--fg); font-weight: 600; }
+  .log time { color: #5f6676; margin-right: 6px; }
+  .empty { color: var(--muted); font-size: 13px; }
+  /* mapa do Segundo Cérebro em tela cheia */
+  #brain { position: absolute; inset: 0; background: #0f1218; display: flex; flex-direction: column; z-index: 5; }
+  #brain header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+                  padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--line); }
+  #brain h2 { margin: 0; font-size: 16px; }
+  #brainWrap { flex: 1; min-height: 0; position: relative; }
+  #brainCanvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; }
+  #brainInfo { border-top: 1px solid var(--line); font-size: 13px; line-height: 1.5; min-height: 64px;
+               padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  #brainInfo .conn { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  #brainInfo .conn button { background: #1f242d; color: var(--fg); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; font: 12px var(--display); cursor: pointer; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; font: 11px var(--mono); color: var(--muted); }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 62vh auto; height: auto; }
+    aside { border-left: 0; border-top: 1px solid var(--line); }
+  }
+</style>
+
+<div class="app">
+  <div id="stage">
+    <div class="modebar">
+      <button class="btn primary" id="modeBtn">Andar pelo escritório</button>
+      <button class="btn" id="viewBtn" hidden>Ver em 3ª pessoa</button>
+      <button class="btn" id="brainBtn">Mapa do Segundo Cérebro</button>
+    </div>
+    <div class="chip hint" id="hint">arraste para girar · role para zoom · clique num agente ou no quadro</div>
+    <div id="crosshair" hidden></div>
+    <div class="chip" id="tip" hidden></div>
+    <div class="touchpad" id="touchpad" hidden>
+      <button class="btn" id="tFwd" aria-label="Andar para frente">▲</button>
+      <button class="btn" id="tBack" aria-label="Andar para trás">▼</button>
+    </div>
+    <div id="brain" hidden>
+      <header>
+        <h2>Segundo Cérebro · conexões</h2>
+        <div class="legend" id="legend"></div>
+        <button class="btn" id="brainClose">Fechar</button>
+      </header>
+      <div id="brainWrap"><canvas id="brainCanvas"></canvas></div>
+      <div id="brainInfo"><span class="empty">Passe o mouse ou toque numa nota para ver as conexões dela.</span></div>
+    </div>
+  </div>
+  <aside>
+    <div>
+      <h1>Escritório dos Agentes</h1>
+      <p class="sub">Agentes simulados trabalham, fazem reunião e pausa sozinhos. Use “Andar pelo escritório” para circular em 1ª ou 3ª pessoa, olhando em volta só com o mouse. O quadro grande na parede mostra o mapa do seu Segundo Cérebro.</p>
+    </div>
+    <section>
+      <p class="label">Segundo Cérebro</p>
+      <div class="brain-card">
+        <div class="stats" id="brainStats"></div>
+        <div class="actions"><button class="btn" id="brainBtn2">Abrir mapa de conexões</button></div>
+      </div>
+    </section>
+    <section>
+      <p class="label">Equipe</p>
+      <div class="list" id="agentList"></div>
+    </section>
+    <section id="detail"></section>
+    <section>
+      <p class="label">Atividade do escritório</p>
+      <ul class="log" id="feed"></ul>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+function showFail(msg) { document.getElementById('stage').insertAdjacentHTML('beforeend', `<div class="fail">${msg}</div>`); }
+window.addEventListener('error', e => showFail('Erro ao montar a cena 3D: ' + e.message));
+if (!window.THREE) showFail('Não foi possível carregar a biblioteca 3D. Recarregue a página.');
+else if (!document.createElement('canvas').getContext('webgl')) showFail('Seu navegador está com WebGL desativado, por isso o 3D não aparece. Ative a aceleração de hardware ou abra em outro navegador.');
+</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// ================= Segundo Cérebro (lido da pasta "segundo cerebro" em 20/10/2026) =================
+const FOLDERS = [
+  ['inbox', '00 Inbox', '#f2b54a'], ['proj', '01 Projetos', '#e0795b'], ['trab', '02 Trabalho', '#4cc38a'],
+  ['est', '03 Estudos', '#5aa3f0'], ['ide', '04 Ideias', '#c78ae6'], ['doc', '05 Documentos', '#5fc9c4'],
+  ['ref', '06 Referências', '#9fb0c8'], ['arq', '07 Arquivo', '#8a8f99'], ['index', 'INDEX', '#e8d27a'], ['out', 'Claude outputs', '#e39ab8'],
+];
+// [id, título, pasta, fantasma (link para nota que ainda não existe)]
+const NOTES = [
+  ['contagem', 'Contagem hotel hospedados', 'inbox'], ['dependencia', 'Dependência Lovable e migração', 'inbox'],
+  ['pacotes', 'Pacotes matriz conferido', 'inbox'], ['receita', 'Receita banho e tosa', 'inbox'],
+  ['carPacote', 'Carrossel: pacote vs banho avulso', 'inbox'], ['carHotel', 'Carrossel: preparando o cão para o hotel', 'inbox'],
+  ['carSinais', 'Carrossel: sinais da creche', 'inbox'], ['moldes', 'Moldes de carrossel (5 estilos)', 'inbox'],
+  ['tutorial', 'Tutorial migração Lovable → Supabase', 'inbox'], ['backup', 'Como baixar e conferir o backup', 'inbox'],
+  ['chatbot', 'Chatbot de vendas WhatsApp (n8n + Gemini)', 'inbox'],
+  ['minecraft', 'Servidor Minecraft (whitelist e mapa)', 'proj'], ['fotoia', 'foto-ia-hyperframes', 'proj'], ['remotion', 'remotion-videos', 'proj'],
+  ['sistema', 'Sistema Cantinho Au Au', 'trab'], ['modeloDados', 'Modelo de dados', 'trab'],
+  ['indice', 'Índice geral', 'index'], ['mEstudo', 'Modelo: estudo', 'index'], ['mIdeia', 'Modelo: ideia', 'index'],
+  ['mProjeto', 'Modelo: projeto', 'index'], ['mTarefa', 'Modelo: tarefa', 'index'],
+  ['gSerie', 'Série: não traga seu cachorro pra creche', 'inbox', 1], ['gMkt', 'Índice de marketing (ChatGPT)', 'inbox', 1],
+  ['gCarNao', 'Carrossel: não traga seu cão pra creche', 'inbox', 1], ['gRedirects', 'redirects', 'inbox', 1],
+];
+// links [[...]] reais encontrados nas notas
+const LINKS = [
+  ['contagem', 'sistema'], ['dependencia', 'pacotes'], ['dependencia', 'sistema'], ['pacotes', 'modeloDados'], ['pacotes', 'sistema'],
+  ['receita', 'pacotes'], ['receita', 'sistema'], ['carPacote', 'receita'], ['carHotel', 'contagem'], ['carHotel', 'carPacote'],
+  ['carHotel', 'modeloDados'], ['carHotel', 'sistema'], ['carSinais', 'carPacote'], ['carSinais', 'carHotel'],
+  ['moldes', 'gSerie'], ['moldes', 'gMkt'], ['moldes', 'gCarNao'], ['tutorial', 'dependencia'], ['tutorial', 'gRedirects'],
+  ['backup', 'tutorial'], ['indice', 'modeloDados'], ['indice', 'sistema'], ['modeloDados', 'sistema'],
+  ['indice', 'mEstudo'], ['indice', 'mIdeia'], ['indice', 'mProjeto'],
+];
+
+const brain = (() => {
+  const nodes = [{ id: 'hub', label: 'Segundo Cérebro', kind: 'hub', color: '#ffffff' }];
+  FOLDERS.forEach(([id, label, color]) => nodes.push({ id: 'f_' + id, label, kind: 'folder', color, folder: id }));
+  NOTES.forEach(([id, label, folder, ghost]) => nodes.push({ id, label, kind: ghost ? 'ghost' : 'note', folder, color: FOLDERS.find(f => f[0] === folder)[2] }));
+  const at = Object.fromEntries(nodes.map((n, i) => [n.id, i]));
+  const edges = [];
+  FOLDERS.forEach(([id]) => edges.push({ a: 0, b: at['f_' + id], kind: 'tree' }));
+  NOTES.forEach(([id, , folder, ghost]) => { if (!ghost) edges.push({ a: at['f_' + folder], b: at[id], kind: 'tree' }); });
+  LINKS.forEach(([a, b]) => edges.push({ a: at[a], b: at[b], kind: 'link' }));
+  return { nodes, edges };
+})();
+
+// layout por forças, determinístico, em coordenadas 2400 x 800
+const BW = 2400, BH = 800;
+(function layout() {
+  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const N = brain.nodes;
+  N.forEach((n, i) => { n.x = BW / 2 + (rnd() - .5) * BW * .7; n.y = BH / 2 + (rnd() - .5) * BH * .7; });
+  N[0].x = BW / 2; N[0].y = BH / 2;
+  for (let it = 0; it < 600; it++) {
+    const fx = new Float32Array(N.length), fy = new Float32Array(N.length);
+    for (let i = 0; i < N.length; i++) for (let j = i + 1; j < N.length; j++) {
+      let dx = N[i].x - N[j].x, dy = (N[i].y - N[j].y) * 1.8, d2 = Math.max(dx * dx + dy * dy, 400);
+      const f = 90000 / d2, d = Math.sqrt(d2);
+      fx[i] += dx / d * f; fy[i] += dy / d * f; fx[j] -= dx / d * f; fy[j] -= dy / d * f;
+    }
+    brain.edges.forEach(e => {
+      const A = N[e.a], B = N[e.b], dx = B.x - A.x, dy = B.y - A.y, d = Math.hypot(dx, dy) || 1;
+      const len = e.kind === 'link' ? 150 : (A.kind === 'hub' ? 300 : 130), k = e.kind === 'link' ? .035 : .05;
+      const f = (d - len) * k; fx[e.a] += dx / d * f; fy[e.a] += dy / d * f; fx[e.b] -= dx / d * f; fy[e.b] -= dy / d * f;
+    });
+    const cool = 1 - it / 650;
+    N.forEach((n, i) => {
+      if (i === 0) return;
+      fx[i] += (BW / 2 - n.x) * .0015; fy[i] += (BH / 2 - n.y) * .012;
+      n.x = Math.min(BW - 150, Math.max(150, n.x + Math.max(-30, Math.min(30, fx[i])) * cool));
+      n.y = Math.min(BH - 60, Math.max(120, n.y + Math.max(-30, Math.min(30, fy[i])) * cool));
+    });
+  }
+})();
+const neighbors = i => brain.edges.filter(e => e.kind === 'link' && (e.a === i || e.b === i)).map(e => e.a === i ? e.b : e.a);
+
+// desenha o mapa num canvas qualquer (quadro 3D ou tela cheia). s = escala, ox/oy = deslocamento
+function drawBrain(ctx, w, h, hi, opts = {}) {
+  const s = Math.min(w / BW, h / BH), ox = (w - BW * s) / 2, oy = (h - BH * s) / 2, P = n => [ox + n.x * s, oy + n.y * s];
+  ctx.fillStyle = '#10131a'; ctx.fillRect(0, 0, w, h);
+  const near = hi == null ? null : new Set([hi, ...neighbors(hi)]);
+  brain.edges.forEach(e => {
+    const [x1, y1] = P(brain.nodes[e.a]), [x2, y2] = P(brain.nodes[e.b]);
+    const on = near && (e.a === hi || e.b === hi);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    if (e.kind === 'tree') { ctx.strokeStyle = near ? 'rgba(255,255,255,.04)' : 'rgba(255,255,255,.10)'; ctx.lineWidth = 2 * s * 1.4; ctx.setLineDash([]); }
+    else { ctx.strokeStyle = on ? '#ffd27a' : near ? 'rgba(143,230,255,.15)' : 'rgba(143,230,255,.6)'; ctx.lineWidth = (on ? 6 : 3.5) * s * 1.4; ctx.setLineDash(brain.nodes[e.b].kind === 'ghost' || brain.nodes[e.a].kind === 'ghost' ? [10 * s, 8 * s] : []); }
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  brain.nodes.forEach((n, i) => {
+    const [x, y] = P(n), r = (n.kind === 'hub' ? 26 : n.kind === 'folder' ? 17 : 11) * s * 1.4;
+    const dim = near && !near.has(i);
+    ctx.globalAlpha = dim ? .25 : 1;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    if (n.kind === 'ghost') { ctx.strokeStyle = n.color; ctx.lineWidth = 3 * s * 1.4; ctx.setLineDash([5 * s, 4 * s]); ctx.stroke(); ctx.setLineDash([]); }
+    else { ctx.fillStyle = n.color; ctx.fill(); }
+    if (i === hi) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4 * s * 1.4; ctx.stroke(); }
+    const fs = (n.kind === 'note' || n.kind === 'ghost' ? 19 : 24) * s * 1.4;
+    ctx.font = `${n.kind === 'note' || n.kind === 'ghost' ? 600 : 800} ${fs}px Manrope, sans-serif`;
+    ctx.fillStyle = n.kind === 'ghost' ? '#8d95a5' : '#e8eaef'; ctx.textAlign = 'center';
+    ctx.fillText(n.label.length > 34 && i !== hi ? n.label.slice(0, 32) + '…' : n.label, x, y + r + fs * 1.05);
+  });
+  ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  if (opts.title) {
+    ctx.fillStyle = '#e8eaef'; ctx.font = `800 ${46 * s}px Manrope, sans-serif`; ctx.fillText('Segundo Cérebro · conexões', ox + 40 * s, oy + 64 * s);
+    ctx.fillStyle = '#8d95a5'; ctx.font = `${26 * s}px "JetBrains Mono", monospace`;
+    ctx.fillText(`${NOTES.filter(n => !n[3]).length} notas · ${LINKS.length} links · tracejado = nota ainda não criada`, ox + 40 * s, oy + 104 * s);
+  }
+  return { s, ox, oy };
+}
+function nodeAt(px, py, view, maxD = 34) {
+  let best = null, bd = maxD;
+  brain.nodes.forEach((n, i) => { const d = Math.hypot(view.ox + n.x * view.s - px, view.oy + n.y * view.s - py); if (d < bd) { bd = d; best = i; } });
+  return best;
+}
+
+// ================= cena =================
+const STATUS = {
+  working: { txt: 'Trabalhando', color: '#4cc38a' },
+  meeting: { txt: 'Em reunião',  color: '#5aa3f0' },
+  idle:    { txt: 'Pausa',       color: '#a0a7b3' },
+  walking: { txt: 'Andando',     color: '#f2b54a' },
+};
+const TASKS = {
+  'Pesquisa': ['Levantar concorrentes do nicho', 'Resumir 5 artigos sobre o tema', 'Mapear palavras-chave'],
+  'Desenvolvimento': ['Corrigir bug no formulário', 'Criar endpoint de relatórios', 'Escrever testes da API'],
+  'Redação': ['Escrever post para o blog', 'Criar roteiro de vídeo', 'Revisar legenda do carrossel'],
+  'Revisão': ['Revisar texto da Carla', 'Checar dados do relatório', 'Aprovar entrega da semana'],
+  'Dados': ['Atualizar planilha de vendas', 'Gerar gráfico mensal', 'Limpar base de clientes'],
+  'Gestão': ['Distribuir tarefas do dia', 'Planejar sprint', 'Enviar status para o cliente'],
+};
+const TEAM = [
+  { id: 'ana',   name: 'Ana',   role: 'Pesquisa',        color: '#e0795b' },
+  { id: 'bruno', name: 'Bruno', role: 'Desenvolvimento', color: '#5aa3f0' },
+  { id: 'carla', name: 'Carla', role: 'Redação',         color: '#c78ae6' },
+  { id: 'davi',  name: 'Davi',  role: 'Revisão',         color: '#4cc38a' },
+  { id: 'eva',   name: 'Eva',   role: 'Dados',           color: '#f2b54a' },
+  { id: 'fabio', name: 'Fábio', role: 'Gestão',          color: '#5fc9c4' },
+];
+
+const stage = document.getElementById('stage');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#14161b');
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 200);
+camera.rotation.order = 'YXZ';
+camera.position.set(11, 15, 17);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.domElement.className = 'scene';
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+stage.prepend(renderer.domElement);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0, 0.5);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI / 2.25;
+controls.minDistance = 6; controls.maxDistance = 40;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x30343f, 0.75));
+const sun = new THREE.DirectionalLight(0xffffff, 0.75);
+sun.position.set(8, 16, 7); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14 });
+scene.add(sun);
+
+const obstacles = []; // caixas [minX, maxX, minZ, maxZ] para colisão na 1ª pessoa
+function box(w, h, d, color, x, y, z, solid) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color, roughness: 0.8 }));
+  m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; scene.add(m);
+  if (solid) obstacles.push([x - w / 2, x + w / 2, z - d / 2, z + d / 2]);
+  return m;
+}
+function rug(w, d, color, x, z) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshStandardMaterial({ color, roughness: 1 }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.01, z); m.receiveShadow = true; scene.add(m);
+}
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 14), new THREE.MeshStandardMaterial({ color: '#3b404b', roughness: 1 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+box(20, 3.8, 0.2, '#555b67', 0, 1.9, -7.1);
+box(0.2, 3.8, 14.2, '#4d535e', -10.1, 1.9, 0);
+rug(4.2, 4.2, '#2e4660', 6.5, -2);
+rug(4.4, 2.8, '#3c4a40', -6, 5.6);
+
+const desks = [[-6, -3], [-2, -3], [2, -3], [-6, 1], [-2, 1], [2, 1]];
+const screens = desks.map(([x, z]) => {
+  box(2.4, 0.08, 1.2, '#c49a6c', x, 0.92, z, true);
+  box(0.08, 0.88, 1.1, '#8b6c4c', x - 1.15, 0.44, z);
+  box(0.08, 0.88, 1.1, '#8b6c4c', x + 1.15, 0.44, z);
+  box(1.0, 0.6, 0.06, '#101216', x, 1.36, z - 0.3);
+  box(0.12, 0.3, 0.12, '#101216', x, 1.06, z - 0.32);
+  box(0.6, 0.45, 0.6, '#2a2d35', x, 0.22, z + 0.95);
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.5),
+    new THREE.MeshStandardMaterial({ color: '#0b1522', emissive: '#3fa0ff', emissiveIntensity: 0.08 }));
+  screen.position.set(x, 1.36, z - 0.265); scene.add(screen);
+  return screen;
+});
+
+box(2, 0.08, 3, '#dcd6cb', 6.5, 0.8, -2, true);
+box(0.4, 0.76, 0.4, '#8f8a80', 6.5, 0.38, -2);
+box(3, 1, 0.7, '#6b4f3a', 6.5, 0.5, 6.45, true);
+box(0.5, 0.6, 0.45, '#1d1f24', 7.4, 1.3, 6.45);
+box(0.25, 0.3, 0.25, '#e8e1d6', 5.6, 1.15, 6.45);
+box(3, 0.45, 1, '#4a6b5a', -6, 0.23, 6.4, true);
+box(3, 0.6, 0.25, '#42604f', -6, 0.75, 6.85);
+[[-9.3, -6.3], [9.3, -6.3], [-9.3, 6.3]].forEach(([x, z]) => {
+  box(0.5, 0.5, 0.5, '#6b4f3a', x, 0.25, z, true);
+  const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.55, 14, 12), new THREE.MeshStandardMaterial({ color: '#3f8a57', roughness: 0.9 }));
+  leaf.position.set(x, 1.0, z); leaf.castShadow = true; scene.add(leaf);
+});
+
+// quadro grande do Segundo Cérebro na parede do fundo
+const brainCv = document.createElement('canvas'); brainCv.width = BW; brainCv.height = BH;
+const brainTex = new THREE.CanvasTexture(brainCv);
+brainTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const brainBoard = new THREE.Mesh(new THREE.PlaneGeometry(8.4, 2.8), new THREE.MeshBasicMaterial({ map: brainTex }));
+brainBoard.position.set(-3.6, 2.0, -6.94); scene.add(brainBoard);
+box(8.6, 3.0, 0.06, '#22262e', -3.6, 2.0, -7.0);
+let boardHi = null;
+function drawBrainBoard() { drawBrain(brainCv.getContext('2d'), BW, BH, boardHi, { title: true }); brainTex.needsUpdate = true; }
+
+// quadro de tarefas na parede da esquerda
+const kanCv = document.createElement('canvas'); kanCv.width = 1024; kanCv.height = 400;
+const kanTex = new THREE.CanvasTexture(kanCv);
+const kanBoard = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.64), new THREE.MeshBasicMaterial({ map: kanTex }));
+kanBoard.rotation.y = Math.PI / 2; kanBoard.position.set(-9.98, 1.9, -1.5); scene.add(kanBoard);
+let doneCount = 0, lastDone = '—';
+function drawBoard() {
+  const c = kanCv.getContext('2d');
+  c.fillStyle = '#f3f1ec'; c.fillRect(0, 0, 1024, 400);
+  c.fillStyle = '#1b1e25'; c.font = '800 44px Manrope, sans-serif'; c.fillText('Quadro da equipe', 40, 70);
+  const cols = [['Trabalhando', count('working'), '#2f9e6a'], ['Em reunião', count('meeting'), '#3b82c9'], ['Concluídas', doneCount, '#b57d12']];
+  cols.forEach(([t, n, col], i) => {
+    const x = 40 + i * 325;
+    c.fillStyle = col; c.fillRect(x, 105, 300, 8);
+    c.fillStyle = '#4a4f5b'; c.font = '600 30px Manrope, sans-serif'; c.fillText(t, x, 160);
+    c.fillStyle = '#1b1e25'; c.font = '800 96px Manrope, sans-serif'; c.fillText(String(n), x, 265);
+  });
+  c.fillStyle = '#4a4f5b'; c.font = '28px "JetBrains Mono", monospace'; c.fillText('Última entrega: ' + lastDone.slice(0, 48), 40, 350);
+  kanTex.needsUpdate = true;
+}
+
+// ================= agentes =================
+const AISLE = 3.6;
+const deskSpots = desks.map(([x, z]) => ({ x, z: z + 1.0, entryX: x + 2, face: Math.PI }));
+const meetingSpots = [[5.2, -2.8, Math.PI / 2], [5.2, -1.2, Math.PI / 2], [7.8, -2.8, -Math.PI / 2], [7.8, -1.2, -Math.PI / 2]]
+  .map(([x, z, face]) => ({ x, z, entryX: x, face, taken: null }));
+const breakSpots = [[5.6, 5.4, 0], [6.5, 5.4, 0], [7.4, 5.4, 0], [-7, 5.2, Math.PI], [-6, 5.2, Math.PI], [-5, 5.2, Math.PI]]
+  .map(([x, z, face]) => ({ x, z, entryX: x, face, taken: null }));
+const freeSpot = list => { const f = list.filter(s => !s.taken); return f.length ? f[Math.floor(Math.random() * f.length)] : null; };
+
+const pickables = [];
+function makeLabel(a) {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+  const tex = new THREE.CanvasTexture(cv);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false }));
+  sp.scale.set(1.2, 0.3, 1); sp.position.y = 1.7; sp.renderOrder = 10;
+  a.label = { cv, tex, sp };
+  return sp;
+}
+function drawLabel(a) {
+  const { cv, tex } = a.label, c = cv.getContext('2d');
+  c.clearRect(0, 0, 256, 64);
+  c.fillStyle = 'rgba(20,22,27,.88)'; c.beginPath(); c.roundRect ? c.roundRect(4, 6, 248, 52, 26) : c.rect(4, 6, 248, 52); c.fill();
+  c.fillStyle = STATUS[a.status].color; c.beginPath(); c.arc(34, 32, 9, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#e8eaef'; c.font = '700 26px Manrope, sans-serif'; c.fillText(a.name, 54, 41);
+  tex.needsUpdate = true;
+}
+
+function rand(list) { return list[Math.floor(Math.random() * list.length)]; }
+function count(st) { return typeof agents === 'undefined' ? 0 : agents.filter(a => a.status === st).length; }
+function place(a, s) { a.spot = s; a.group.position.set(s.x, 0, s.z); a.group.rotation.y = s.face; }
+
+const agents = TEAM.map((def, i) => {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: def.color, roughness: 0.55 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.32, 0.8, 18), mat); body.position.y = 0.55;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 20, 16), mat); head.position.y = 1.17;
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.09, 0.06),
+    new THREE.MeshStandardMaterial({ color: '#0e1116', emissive: '#8fe6ff', emissiveIntensity: 0.7 }));
+  visor.position.set(0, 1.2, 0.21);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.52, 36), new THREE.MeshBasicMaterial({ color: '#f2b54a' }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03; ring.visible = false;
+  const rig = new THREE.Group(); rig.add(body, head, visor);
+  [body, head, visor].forEach(m => { m.castShadow = true; m.userData.agentId = def.id; pickables.push(m); });
+  g.add(rig, ring);
+  const a = { ...def, desk: deskSpots[i], screen: screens[i], group: g, rig, ring, status: 'idle', task: null,
+              spot: null, path: [], next: null, timer: 0, logs: [], phase: Math.random() * 6 };
+  g.add(makeLabel(a));
+  scene.add(g);
+  if (i % 2 === 0) { place(a, a.desk); a.status = 'working'; a.task = rand(TASKS[a.role]); a.timer = 4 + Math.random() * 6; }
+  else { const s = freeSpot(breakSpots); s.taken = a.id; place(a, s); a.timer = 2 + Math.random() * 4; }
+  drawLabel(a);
+  return a;
+});
+
+function goTo(a, target, status, duration) {
+  if (a.spot && a.spot.taken !== undefined) a.spot.taken = null;
+  if (target.taken !== undefined) target.taken = a.id;
+  const p = a.group.position, from = a.spot;
+  const pts = [];
+  if (a.status === 'walking' || !from) pts.push({ x: p.x, z: AISLE });
+  else pts.push({ x: from.entryX, z: from.z }, { x: from.entryX, z: AISLE });
+  pts.push({ x: target.entryX, z: AISLE }, { x: target.entryX, z: target.z }, { x: target.x, z: target.z });
+  a.path = pts; a.spot = target; a.next = { status, duration };
+  setStatus(a, 'walking');
+}
+function setStatus(a, st) { a.status = st; drawLabel(a); drawBoard(); renderList(); if (selected === a) renderDetail(); }
+
+const feed = [];
+function log(a, msg) {
+  const t = new Date().toLocaleTimeString('pt-BR');
+  a.logs.unshift({ t, msg }); a.logs.length = Math.min(a.logs.length, 30);
+  feed.unshift({ t, who: a.name, msg }); feed.length = Math.min(feed.length, 40);
+  document.getElementById('feed').innerHTML = feed.map(f => `<li><time>${f.t}</time><b>${f.who}</b> ${f.msg}</li>`).join('');
+  if (selected === a) renderDetail();
+}
+function giveTask(a, task) {
+  a.task = task || rand(TASKS[a.role]);
+  log(a, `pegou a tarefa “${a.task}”`);
+  goTo(a, a.desk, 'working', 7 + Math.random() * 7);
+}
+function callMeeting(a) {
+  const s = freeSpot(meetingSpots);
+  if (!s) { log(a, 'não achou cadeira livre na sala de reunião'); return; }
+  log(a, 'foi para a sala de reunião');
+  goTo(a, s, 'meeting', 6 + Math.random() * 5);
+}
+function takeBreak(a) {
+  const s = freeSpot(breakSpots);
+  if (!s) return;
+  log(a, 'foi fazer uma pausa');
+  goTo(a, s, 'idle', 3 + Math.random() * 5);
+}
+function decide(a) {
+  if (a.status === 'working') {
+    doneCount++; lastDone = `${a.name}: ${a.task}`;
+    log(a, `concluiu “${a.task}”`);
+    a.task = null;
+    Math.random() < 0.35 ? callMeeting(a) : takeBreak(a);
+    if (a.status !== 'walking') takeBreak(a);
+  } else if (a.status === 'meeting') {
+    log(a, 'saiu da reunião');
+    Math.random() < 0.6 ? giveTask(a) : takeBreak(a);
+  } else if (a.status === 'idle') {
+    giveTask(a);
+  }
+}
+function updateAgent(a, dt, t) {
+  const p = a.group.position;
+  if (a.path.length) {
+    const w = a.path[0], dx = w.x - p.x, dz = w.z - p.z, d = Math.hypot(dx, dz), step = 2.4 * dt;
+    if (d <= step) { p.x = w.x; p.z = w.z; a.path.shift(); }
+    else { p.x += dx / d * step; p.z += dz / d * step; a.group.rotation.y = Math.atan2(dx, dz); }
+    a.rig.position.y = Math.abs(Math.sin(t * 10 + a.phase)) * 0.08;
+    if (!a.path.length) {
+      a.group.rotation.y = a.spot.face;
+      a.timer = a.next.duration;
+      setStatus(a, a.next.status);
+      if (a.next.status === 'working') log(a, 'começou a trabalhar');
+    }
+    return;
+  }
+  const sitting = a.status === 'working' || a.status === 'meeting';
+  a.rig.position.y = (sitting ? -0.12 : 0) + Math.sin(t * 2 + a.phase) * 0.015;
+  a.rig.rotation.x = a.status === 'working' ? Math.sin(t * 6 + a.phase) * 0.03 : 0;
+  a.timer -= dt;
+  if (a.timer <= 0) decide(a);
+}
+
+// ================= painel =================
+let selected = null;
+const listEl = document.getElementById('agentList'), detailEl = document.getElementById('detail');
+function pill(st) { return `<span class="pill s-${st}">${STATUS[st].txt}</span>`; }
+function renderList() {
+  listEl.innerHTML = agents.map(a => `
+    <button class="agent-btn" id="btn-${a.id}" data-id="${a.id}" aria-pressed="${selected === a}">
+      <span class="swatch" style="background:${a.color}"></span>
+      <span><span class="name">${a.name}</span> <span class="role">· ${a.role}</span></span>
+      ${pill(a.status)}
+    </button>`).join('');
+}
+function renderDetail() {
+  if (!selected) { detailEl.innerHTML = `<p class="label">Detalhes</p><p class="empty">Clique em um agente no escritório ou na lista acima.</p>`; return; }
+  const a = selected;
+  detailEl.innerHTML = `
+    <p class="label">Detalhes</p>
+    <div class="detail">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div><div class="name" style="font-size:16px">${a.name}</div><div class="role">${a.role}</div></div>${pill(a.status)}
+      </div>
+      <div class="task"><span class="role">Tarefa atual</span><br>${a.task ? a.task : '<span class="empty">Nenhuma</span>'}</div>
+      <div class="actions">
+        <button class="btn primary" id="act-task">Dar nova tarefa</button>
+        <button class="btn" id="act-meet">Chamar p/ reunião</button>
+        <button class="btn" id="act-break">Pausa</button>
+      </div>
+      <div><p class="label" style="margin-top:4px">Histórico</p>
+      <ul class="log">${a.logs.map(l => `<li><time>${l.t}</time>${l.msg}</li>`).join('') || '<li>Sem eventos ainda</li>'}</ul></div>
+    </div>`;
+  document.getElementById('act-task').onclick = () => giveTask(a);
+  document.getElementById('act-meet').onclick = () => callMeeting(a);
+  document.getElementById('act-break').onclick = () => takeBreak(a);
+}
+function select(a) {
+  agents.forEach(x => x.ring.visible = x === a);
+  selected = a; renderList(); renderDetail();
+}
+listEl.addEventListener('click', e => { const b = e.target.closest('.agent-btn'); if (b) select(agents.find(a => a.id === b.dataset.id)); });
+document.getElementById('brainStats').innerHTML =
+  `<div><b>${NOTES.filter(n => !n[3]).length}</b><span>notas</span></div><div><b>${LINKS.length}</b><span>links</span></div><div><b>${NOTES.filter(n => n[3]).length}</b><span>a criar</span></div>`;
+
+// ================= mapa em tela cheia =================
+const brainEl = document.getElementById('brain'), bCanvas = document.getElementById('brainCanvas'), bInfo = document.getElementById('brainInfo');
+document.getElementById('legend').innerHTML = FOLDERS.filter(f => brain.nodes.some(n => n.folder === f[0] && n.kind !== 'folder'))
+  .map(([, l, c]) => `<span><i style="background:${c}"></i>${l}</span>`).join('');
+let bView = null, bHi = null, bPinned = null;
+function renderBrainOverlay() {
+  const r = bCanvas.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio, 2);
+  bCanvas.width = r.width * dpr; bCanvas.height = r.height * dpr;
+  const ctx = bCanvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  bView = drawBrain(ctx, r.width, r.height, bHi);
+}
+function showNodeInfo(i) {
+  if (i == null) { bInfo.innerHTML = '<span class="empty">Passe o mouse ou toque numa nota para ver as conexões dela.</span>'; return; }
+  const n = brain.nodes[i], nb = neighbors(i), folder = FOLDERS.find(f => f[0] === n.folder);
+  const kind = n.kind === 'ghost' ? 'nota citada que ainda não existe' : n.kind === 'folder' ? 'pasta' : n.kind === 'hub' ? 'raiz' : folder[1];
+  bInfo.innerHTML = `<strong>${n.label}</strong> <span class="role">· ${kind} · ${nb.length} ${nb.length === 1 ? 'link' : 'links'}</span>` +
+    (nb.length ? `<div class="conn">${nb.map(j => `<button data-i="${j}">${brain.nodes[j].label}</button>`).join('')}</div>` : '');
+}
+bInfo.addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) { bPinned = bHi = +b.dataset.i; renderBrainOverlay(); showNodeInfo(bHi); } });
+bCanvas.addEventListener('pointermove', e => {
+  if (!bView || bPinned != null) return;
+  const r = bCanvas.getBoundingClientRect(), i = nodeAt(e.clientX - r.left, e.clientY - r.top, bView, 22);
+  if (i !== bHi) { bHi = i; renderBrainOverlay(); showNodeInfo(i); }
+});
+bCanvas.addEventListener('click', e => {
+  const r = bCanvas.getBoundingClientRect(), i = nodeAt(e.clientX - r.left, e.clientY - r.top, bView, 26);
+  bPinned = i; bHi = i; renderBrainOverlay(); showNodeInfo(i);
+});
+function openBrain(i = null) {
+  brainEl.hidden = false; bPinned = bHi = i; showNodeInfo(i);
+  requestAnimationFrame(renderBrainOverlay);
+}
+function closeBrain() { brainEl.hidden = true; }
+document.getElementById('brainBtn').onclick = () => openBrain();
+document.getElementById('brainBtn2').onclick = () => openBrain();
+document.getElementById('brainClose').onclick = closeBrain;
+
+// ================= 1ª pessoa =================
+let mode = 'overview', view = 1; // view: 1 = 1ª pessoa, 3 = 3ª pessoa
+const player = { x: 0, z: 5.6, yaw: 0, pitch: -0.05 };
+const keys = {};
+const hover = { in: false, nx: 0, ny: 0 }; // posição do mouse sobre a cena (-1..1), usada para olhar sem clicar
+const savedCam = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+const modeBtn = document.getElementById('modeBtn'), viewBtn = document.getElementById('viewBtn'), hintEl = document.getElementById('hint'), tipEl = document.getElementById('tip');
+const crossEl = document.getElementById('crosshair'), touchEl = document.getElementById('touchpad');
+const isTouch = matchMedia('(pointer: coarse)').matches;
+
+// avatar do visitante, visível só na 3ª pessoa
+const avatar = new THREE.Group();
+(() => {
+  const mat = new THREE.MeshStandardMaterial({ color: '#f3f1ec', roughness: 0.5 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.33, 0.85, 18), mat); body.position.y = 0.58;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 20, 16), mat); head.position.y = 1.24;
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.1, 0.06), new THREE.MeshStandardMaterial({ color: '#0e1116', emissive: '#f2b54a', emissiveIntensity: 0.9 }));
+  visor.position.set(0, 1.27, 0.22);
+  [body, head, visor].forEach(m => { m.castShadow = true; avatar.add(m); });
+  avatar.visible = false; scene.add(avatar);
+})();
+
+function blocked(x, z) {
+  const R = 0.3;
+  if (x < -9.9 + R || x > 9.9 - R || z < -6.95 + R || z > 6.9 - R) return true;
+  return obstacles.some(([a, b, c, d]) => x > a - R && x < b + R && z > c - R && z < d + R);
+}
+function setView(v) {
+  view = v;
+  avatar.visible = mode === 'fp' && view === 3;
+  viewBtn.textContent = view === 1 ? 'Ver em 3ª pessoa' : 'Ver em 1ª pessoa';
+}
+function enterFP() {
+  mode = 'fp';
+  savedCam.pos.copy(camera.position); savedCam.target.copy(controls.target);
+  controls.enabled = false;
+  modeBtn.textContent = 'Visão geral';
+  viewBtn.hidden = false; setView(view);
+  crossEl.hidden = !isTouch; touchEl.hidden = !isTouch;
+  renderer.domElement.style.cursor = 'crosshair';
+  hintEl.textContent = isTouch ? 'arraste para olhar · ▲▼ para andar · toque para selecionar'
+    : 'mova o mouse para as bordas para olhar · WASD andar · Shift correr · V troca 1ª/3ª pessoa';
+}
+function exitFP() {
+  mode = 'overview';
+  camera.position.copy(savedCam.pos); controls.target.copy(savedCam.target); controls.enabled = true;
+  modeBtn.textContent = 'Andar pelo escritório';
+  viewBtn.hidden = true; avatar.visible = false;
+  crossEl.hidden = true; tipEl.hidden = true; touchEl.hidden = true;
+  hintEl.textContent = 'arraste para girar · role para zoom · clique num agente ou no quadro';
+  setBoardHi(null);
+}
+modeBtn.onclick = () => mode === 'fp' ? exitFP() : enterFP();
+viewBtn.onclick = () => setView(view === 1 ? 3 : 1);
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input, textarea')) return;
+  keys[e.code] = true;
+  if (mode === 'fp' && ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+  if (mode === 'fp' && e.code === 'KeyV') setView(view === 1 ? 3 : 1);
+  if (e.code === 'Escape' && !brainEl.hidden) closeBrain();
+});
+addEventListener('keyup', e => keys[e.code] = false);
+addEventListener('blur', () => Object.keys(keys).forEach(k => keys[k] = false));
+[['tFwd', 'KeyW'], ['tBack', 'KeyS']].forEach(([id, code]) => {
+  const b = document.getElementById(id);
+  b.addEventListener('pointerdown', e => { e.preventDefault(); keys[code] = true; });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => keys[code] = false));
+});
+
+function look(dx, dy) {
+  player.yaw -= dx * 0.0025;
+  player.pitch = Math.max(-1.3, Math.min(1.3, player.pitch - dy * 0.0025));
+}
+function updatePlayer(dt) {
+  const run = keys.ShiftLeft || keys.ShiftRight ? 5.5 : 3;
+  let f = 0, s = 0;
+  if (keys.KeyW || keys.ArrowUp) f += 1;
+  if (keys.KeyS || keys.ArrowDown) f -= 1;
+  if (keys.KeyD) s += 1;
+  if (keys.KeyA) s -= 1;
+  if (keys.ArrowLeft) player.yaw += 2 * dt;
+  if (keys.ArrowRight) player.yaw -= 2 * dt;
+  // olhar só passando o mouse: perto das bordas gira, a altura do mouse inclina a visão
+  if (hover.in && !down && !isTouch && brainEl.hidden) {
+    const dead = 0.25, ax = Math.abs(hover.nx);
+    if (ax > dead) player.yaw -= Math.sign(hover.nx) * Math.pow((ax - dead) / (1 - dead), 1.5) * 2.4 * dt;
+    const target = Math.abs(hover.ny) > 0.2 ? Math.sign(hover.ny) * (Math.abs(hover.ny) - 0.2) / 0.8 * 0.9 : 0;
+    player.pitch += (target - player.pitch) * Math.min(1, 3 * dt);
+  }
+  if (f || s) {
+    const len = Math.hypot(f, s), sp = run * dt / len;
+    const dx = (-Math.sin(player.yaw) * f + Math.cos(player.yaw) * s) * sp;
+    const dz = (-Math.cos(player.yaw) * f - Math.sin(player.yaw) * s) * sp;
+    if (!blocked(player.x + dx, player.z)) player.x += dx;
+    if (!blocked(player.x, player.z + dz)) player.z += dz;
+  }
+  const moving = f || s, bob = moving ? Math.sin(performance.now() / 110) * 0.03 : 0;
+  if (view === 1) {
+    camera.position.set(player.x, 1.6 + bob, player.z);
+    camera.rotation.set(player.pitch, player.yaw, 0);
+  } else {
+    const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+    avatar.position.set(player.x, Math.abs(bob) * 2, player.z);
+    avatar.rotation.y = player.yaw + Math.PI;
+    const cx = Math.max(-9.7, player.x - fx * 4.2), cz = Math.max(-6.8, player.z - fz * 4.2);
+    camera.position.set(cx, 2.9, cz);
+    camera.lookAt(player.x + fx * 1.5, 1.2 + Math.tan(player.pitch) * 3, player.z + fz * 1.5);
+  }
+}
+
+// ================= cliques, mira e hover =================
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(x, y) {
+  ndc.set(x, y); ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects([...pickables, brainBoard]);
+  if (!hits.length) return null;
+  const h = hits[0];
+  if (h.object === brainBoard) {
+    const view = { s: 1, ox: 0, oy: 0 };
+    return { board: true, node: nodeAt(h.uv.x * BW, (1 - h.uv.y) * BH, view, 40), dist: h.distance };
+  }
+  return { agent: agents.find(a => a.id === h.object.userData.agentId), dist: h.distance };
+}
+function setBoardHi(i) { if (i !== boardHi) { boardHi = i; drawBrainBoard(); } }
+function screenToNdc(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  return [((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1];
+}
+function act(hit) {
+  if (!hit) { select(null); return; }
+  if (hit.agent) select(hit.agent);
+  else if (hit.board) openBrain(hit.node);
+}
+
+let down = null, dragging = false;
+renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; dragging = false; });
+renderer.domElement.addEventListener('pointerenter', () => hover.in = true);
+renderer.domElement.addEventListener('pointerleave', () => hover.in = false);
+renderer.domElement.addEventListener('pointermove', e => {
+  [hover.nx, hover.ny] = screenToNdc(e); hover.in = true;
+  if (mode === 'fp') {
+    if (down) { dragging = dragging || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4; if (dragging) look(e.movementX, e.movementY); }
+  } else {
+    const hit = pick(...screenToNdc(e));
+    setBoardHi(hit && hit.board ? hit.node : null);
+    renderer.domElement.style.cursor = hit ? 'pointer' : 'grab';
+  }
+});
+addEventListener('pointerup', e => {
+  if (!down) return;
+  const moved = Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5;
+  const onCanvas = e.target === renderer.domElement;
+  down = null;
+  if (moved || !onCanvas) return;
+  act(pick(...screenToNdc(e)));
+});
+
+// ================= loop =================
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+  if (!brainEl.hidden) renderBrainOverlay();
+}
+new ResizeObserver(resize).observe(stage); resize();
+
+const clock = new THREE.Clock();
+let tipT = 0;
+function loop() {
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+  agents.forEach(a => {
+    updateAgent(a, dt, t);
+    const target = a.status === 'working' ? 1.3 : 0.08;
+    a.screen.material.emissiveIntensity += (target - a.screen.material.emissiveIntensity) * 0.08;
+  });
+  if (mode === 'fp') {
+    updatePlayer(dt);
+    if ((tipT += dt) > 0.1) {
+      tipT = 0;
+      const hit = isTouch || !hover.in ? pick(0, 0) : pick(hover.nx, hover.ny);
+      setBoardHi(hit && hit.board ? hit.node : null);
+      let txt = '';
+      if (hit && hit.agent && hit.dist < 10) txt = `${hit.agent.name} · ${STATUS[hit.agent.status].txt} · clique para ver`;
+      else if (hit && hit.board) txt = hit.node != null ? `${brain.nodes[hit.node].label} · ${neighbors(hit.node).length} links · clique para abrir` : 'Segundo Cérebro · clique para abrir o mapa';
+      tipEl.textContent = txt; tipEl.hidden = !txt;
+    }
+  } else controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+renderList(); renderDetail(); drawBoard(); drawBrainBoard();
+document.fonts && document.fonts.ready.then(() => { agents.forEach(drawLabel); drawBoard(); drawBrainBoard(); });
+loop();
+</script>
