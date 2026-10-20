@@ -38,6 +38,19 @@ if (window === top) {
         st.textContent = v;
       }
     });
+    // YouTube dentro da tela: em vez de abrir o vídeo numa aba nova (ou na página /watch, que se recusa a abrir aqui),
+    // abre o player do YouTube na própria tela
+    if (/(^|\.)youtube\.com$/.test(location.hostname)) {
+      const ytEmbed = href => {
+        const m = /(?:[?&]v=|\/shorts\/)([\w-]{11})/.exec(href || '');
+        return m && `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=1&playsinline=1`;
+      };
+      addEventListener('click', e => {
+        const a = e.target.closest && e.target.closest('a[href]');
+        const url = a && /\/(watch|shorts\/)/.test(a.getAttribute('href')) && ytEmbed(a.href);
+        if (url) { e.preventDefault(); e.stopImmediatePropagation(); location.assign(url); }
+      }, true);
+    }
     let last = '';
     setInterval(() => { if (location.href !== last) { last = location.href; send({ url: last, host: location.hostname }); } applyVol(); }, 700);
     addEventListener('keydown', e => { if (e.key === 'Escape') send({ key: 'Escape' }); }, true);
