@@ -1367,8 +1367,14 @@ const GOOGLE = 'https://www.google.com/search?q=';
 function buildApp() {
   const sheet = `https://docs.google.com/spreadsheets/d/${MEDIA.leadsSheet}/edit`;
   const cantinho = loadPref('cantinhoUrl', '');
-  // todos os PCs abrem o Claude; a barra de endereço de cada um leva a qualquer outro site
-  const homes = pcs.map(pc => [`PC ${pc.i + 1} · Claude`, 'https://claude.ai/new', GOOGLE]);
+  const homes = [
+    ['PC 1 · Relatório diário · Claude', 'https://claude.ai/new', GOOGLE],
+    ['PC 2 · Relatório semanal · Claude', 'https://claude.ai/new', GOOGLE],
+    ['PC 3 · Leads tráfego', sheet, GOOGLE],
+    ['PC 4 · Agenda', 'https://calendar.google.com/calendar/r/agenda', GOOGLE],
+    ['PC 5 · Agenda da semana', 'https://calendar.google.com/calendar/r/week', GOOGLE],
+    ['PC 6 · Cantinho do Au Au', cantinho, GOOGLE],
+  ];
   pcs.forEach(pc => {
     const [title, home, search] = homes[pc.i];
     addScreen('pc' + pc.i, pc.screen, 1152, home ? browserEl('pc' + pc.i, title, home, search) : cantinhoEl());
