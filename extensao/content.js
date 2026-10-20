@@ -48,7 +48,8 @@ if (window === top) {
       addEventListener('click', e => {
         const a = e.target.closest && e.target.closest('a[href]');
         const url = a && /\/(watch|shorts\/)/.test(a.getAttribute('href')) && ytEmbed(a.href);
-        if (url) { e.preventDefault(); e.stopImmediatePropagation(); location.assign(url); }
+        // quem abre o player é o escritório (o YouTube recusa com erro 153 se o próprio site abrir o player)
+        if (url) { e.preventDefault(); e.stopImmediatePropagation(); send({ video: url }); }
       }, true);
     }
     let last = '';

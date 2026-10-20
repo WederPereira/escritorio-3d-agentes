@@ -1336,7 +1336,7 @@ if (APP) {
       if (css) postCmd(fr.name, { cmd: 'css', v: css });
       // YouTube: a página de assistir se recusa a abrir dentro da tela; troca pelo player do YouTube (com tela cheia)
       const yt = /^https:\/\/(www|m)\.youtube\.com\/(watch\?(?:.*&)?v=|shorts\/)([\w-]{11})/.exec(e.data.url);
-      if (yt) postCmd(fr.name, { cmd: 'replace', v: `https://www.youtube.com/embed/${yt[3]}?autoplay=1&rel=1&playsinline=1` });
+      if (yt) fr.src = `https://www.youtube.com/embed/${yt[3]}?autoplay=1&rel=1&playsinline=1`;
       // PCs das tarefas: na primeira vez que a página da tarefa abre, entra no chat da execução mais recente
       if (/\/scheduled-task\/trig_/.test(e.data.url) && !openedLatest[fr.name]) {
         openedLatest[fr.name] = true;
@@ -1344,6 +1344,7 @@ if (APP) {
       }
     }
     if (e.data.key === 'Escape') escCbs.forEach(cb => cb());
+    if (e.data.video && /^https:\/\/www\.youtube\.com\/embed\/[\w-]{11}\?/.test(e.data.video)) fr.src = e.data.video;
   });
   window.escritorioApp = {
     isApp: true,
