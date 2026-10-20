@@ -1378,11 +1378,11 @@ function buildApp() {
   ];
   pcs.forEach(pc => {
     const [title, home, search] = homes[pc.i];
-    addScreen('pc' + pc.i, pc.screen, 1152, home ? browserEl('pc' + pc.i, title, home, search) : cantinhoEl());
+    addScreen('pc' + pc.i, pc.screen, 1600, home ? browserEl('pc' + pc.i, title, home, search) : cantinhoEl());
     pc.icon.visible = false; pc.badge = null;
   });
-  addScreen('tv', tvMesh, 1280, browserEl('tv', 'TV · YouTube', 'https://www.youtube.com', 'https://www.youtube.com/results?search_query='));
-  addScreen('spotify', spMesh, 420, browserEl('spotify', 'Spotify', 'https://open.spotify.com', 'https://open.spotify.com/search/'));
+  addScreen('tv', tvMesh, 1600, browserEl('tv', 'TV · YouTube', 'https://www.youtube.com', 'https://www.youtube.com/results?search_query='));
+  addScreen('spotify', spMesh, 560, browserEl('spotify', 'Spotify', 'https://open.spotify.com', 'https://open.spotify.com/search/'));
 }
 
 function buildEmbeds() {
@@ -1399,11 +1399,11 @@ function buildEmbeds() {
     else if (pc.i === 3) el = screenEl('PC 4 · Agenda · próximos compromissos', 'https://calendar.google.com', frame(cal('AGENDA')));
     else if (pc.i === 4) el = screenEl('PC 5 · Agenda · semana', 'https://calendar.google.com', frame(cal('WEEK')));
     else el = cantinhoEl();
-    addScreen('pc' + pc.i, pc.screen, 1152, el);
+    addScreen('pc' + pc.i, pc.screen, 1600, el);
     pc.icon.visible = false; pc.badge = null;
   });
-  addScreen('tv', tvMesh, 1280, tvEl());
-  addScreen('spotify', spMesh, 420, spotifyEl());
+  addScreen('tv', tvMesh, 1600, tvEl());
+  addScreen('spotify', spMesh, 560, spotifyEl());
   resize();
 }
 const TAREFAS_LOCAL = {
