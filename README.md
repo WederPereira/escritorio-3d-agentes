@@ -20,10 +20,10 @@ Depois acesse http://localhost:8765/escritorio-3d.html.
 | --- | --- |
 | Visão de cima | arrastar para girar, rolar para zoom |
 | Andar pelo escritório | botão **Andar pelo escritório** |
-| Olhar em volta | mover o mouse para as bordas da cena (sem clicar) |
-| Andar / correr | W A S D ou setas / Shift |
+| Olhar em volta | mover o mouse (fica preso na cena, como no Minecraft; Esc solta) |
+| Andar / correr / pular | W A S D ou setas / Shift / Espaço |
 | Trocar 1ª ↔ 3ª pessoa | tecla **V** ou botão |
-| Ver um agente | clicar nele |
+| Ver um agente | mirar com a cruz no centro e clicar |
 | Mapa do Segundo Cérebro | clicar no quadro da parede ou no botão |
 
 ## O que é simulado

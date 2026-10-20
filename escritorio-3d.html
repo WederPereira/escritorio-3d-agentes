@@ -107,7 +107,7 @@
   <aside>
     <div>
       <h1>Escritório dos Agentes</h1>
-      <p class="sub">Agentes simulados trabalham, fazem reunião e pausa sozinhos. Use “Andar pelo escritório” para circular em 1ª ou 3ª pessoa, olhando em volta só com o mouse. O quadro grande na parede mostra o mapa do seu Segundo Cérebro.</p>
+      <p class="sub">Agentes simulados trabalham, fazem reunião e pausa sozinhos. Use “Andar pelo escritório” para circular como no Minecraft: o mouse fica preso na cena, WASD anda, Espaço pula e V troca 1ª/3ª pessoa. O quadro grande na parede mostra o mapa do seu Segundo Cérebro.</p>
     </div>
     <section>
       <p class="label">Segundo Cérebro</p>
@@ -586,7 +586,7 @@ document.getElementById('brainClose').onclick = closeBrain;
 
 // ================= 1ª pessoa =================
 let mode = 'overview', view = 1; // view: 1 = 1ª pessoa, 3 = 3ª pessoa
-const player = { x: 0, z: 5.6, yaw: 0, pitch: -0.05 };
+const player = { x: 0, z: 5.6, y: 0, vy: 0, yaw: 0, pitch: -0.05 };
 const keys = {};
 const hover = { in: false, nx: 0, ny: 0 }; // posição do mouse sobre a cena (-1..1), usada para olhar sem clicar
 const savedCam = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
@@ -616,19 +616,35 @@ function setView(v) {
   avatar.visible = mode === 'fp' && view === 3;
   viewBtn.textContent = view === 1 ? 'Ver em 3ª pessoa' : 'Ver em 1ª pessoa';
 }
+// estilo Minecraft: o mouse fica preso na cena e movê-lo vira a câmera; Esc solta
+function lockPointer() {
+  if (isTouch || document.pointerLockElement) return;
+  try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+}
+function fpHint() {
+  hintEl.textContent = isTouch ? 'arraste para olhar · ▲▼ para andar · toque para selecionar'
+    : document.pointerLockElement ? 'WASD andar · Espaço pular · Shift correr · V 1ª/3ª pessoa · clique interage · Esc solta o mouse'
+    : 'clique na cena para prender o mouse · ou mova o mouse para olhar';
+}
+document.addEventListener('pointerlockchange', () => {
+  if (mode !== 'fp') return;
+  renderer.domElement.style.cursor = document.pointerLockElement ? 'none' : 'crosshair';
+  fpHint();
+});
 function enterFP() {
   mode = 'fp';
   savedCam.pos.copy(camera.position); savedCam.target.copy(controls.target);
   controls.enabled = false;
   modeBtn.textContent = 'Visão geral';
   viewBtn.hidden = false; setView(view);
-  crossEl.hidden = !isTouch; touchEl.hidden = !isTouch;
+  crossEl.hidden = false; touchEl.hidden = !isTouch;
   renderer.domElement.style.cursor = 'crosshair';
-  hintEl.textContent = isTouch ? 'arraste para olhar · ▲▼ para andar · toque para selecionar'
-    : 'mova o mouse para as bordas para olhar · WASD andar · Shift correr · V troca 1ª/3ª pessoa';
+  fpHint();
+  lockPointer();
 }
 function exitFP() {
   mode = 'overview';
+  if (document.pointerLockElement) document.exitPointerLock();
   camera.position.copy(savedCam.pos); controls.target.copy(savedCam.target); controls.enabled = true;
   modeBtn.textContent = 'Andar pelo escritório';
   viewBtn.hidden = true; avatar.visible = false;
@@ -666,13 +682,10 @@ function updatePlayer(dt) {
   if (keys.KeyA) s -= 1;
   if (keys.ArrowLeft) player.yaw += 2 * dt;
   if (keys.ArrowRight) player.yaw -= 2 * dt;
-  // olhar só passando o mouse: perto das bordas gira, a altura do mouse inclina a visão
-  if (hover.in && !down && !isTouch && brainEl.hidden) {
-    const dead = 0.25, ax = Math.abs(hover.nx);
-    if (ax > dead) player.yaw -= Math.sign(hover.nx) * Math.pow((ax - dead) / (1 - dead), 1.5) * 2.4 * dt;
-    const target = Math.abs(hover.ny) > 0.2 ? Math.sign(hover.ny) * (Math.abs(hover.ny) - 0.2) / 0.8 * 0.9 : 0;
-    player.pitch += (target - player.pitch) * Math.min(1, 3 * dt);
-  }
+  // pulo
+  if (keys.Space && player.y === 0) player.vy = 4.6;
+  player.vy -= 13 * dt; player.y = Math.max(0, player.y + player.vy * dt);
+  if (player.y === 0) player.vy = Math.max(0, player.vy);
   if (f || s) {
     const len = Math.hypot(f, s), sp = run * dt / len;
     const dx = (-Math.sin(player.yaw) * f + Math.cos(player.yaw) * s) * sp;
@@ -680,17 +693,20 @@ function updatePlayer(dt) {
     if (!blocked(player.x + dx, player.z)) player.x += dx;
     if (!blocked(player.x, player.z + dz)) player.z += dz;
   }
-  const moving = f || s, bob = moving ? Math.sin(performance.now() / 110) * 0.03 : 0;
+  const moving = (f || s) && player.y === 0, bob = moving ? Math.sin(performance.now() / 110) * 0.03 : 0;
   if (view === 1) {
-    camera.position.set(player.x, 1.6 + bob, player.z);
+    camera.position.set(player.x, 1.6 + player.y + bob, player.z);
     camera.rotation.set(player.pitch, player.yaw, 0);
   } else {
-    const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
-    avatar.position.set(player.x, Math.abs(bob) * 2, player.z);
+    // 3ª pessoa como o F5 do Minecraft: a câmera orbita atrás da cabeça seguindo yaw e pitch
+    avatar.position.set(player.x, player.y + Math.abs(bob) * 2, player.z);
     avatar.rotation.y = player.yaw + Math.PI;
-    const cx = Math.max(-9.7, player.x - fx * 4.2), cz = Math.max(-6.8, player.z - fz * 4.2);
-    camera.position.set(cx, 2.9, cz);
-    camera.lookAt(player.x + fx * 1.5, 1.2 + Math.tan(player.pitch) * 3, player.z + fz * 1.5);
+    const head = new THREE.Vector3(player.x, 1.4 + player.y, player.z);
+    const dir = new THREE.Vector3(-Math.sin(player.yaw) * Math.cos(player.pitch), Math.sin(player.pitch), -Math.cos(player.yaw) * Math.cos(player.pitch));
+    const back = head.clone().addScaledVector(dir, -4);
+    back.x = Math.max(-9.7, Math.min(12, back.x)); back.z = Math.max(-6.8, Math.min(12, back.z)); back.y = Math.max(0.4, Math.min(3.6, back.y));
+    camera.position.copy(back);
+    camera.lookAt(head.x, head.y + 0.7, head.z);
   }
 }
 
@@ -719,13 +735,19 @@ function act(hit) {
 }
 
 let down = null, dragging = false;
-renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; dragging = false; });
+renderer.domElement.addEventListener('pointerdown', e => {
+  down = [e.clientX, e.clientY]; dragging = false;
+  if (mode !== 'fp' || isTouch) return;
+  if (document.pointerLockElement) act(pick(0, 0)); else lockPointer();
+  down = null;
+});
 renderer.domElement.addEventListener('pointerenter', () => hover.in = true);
 renderer.domElement.addEventListener('pointerleave', () => hover.in = false);
 renderer.domElement.addEventListener('pointermove', e => {
   [hover.nx, hover.ny] = screenToNdc(e); hover.in = true;
   if (mode === 'fp') {
-    if (down) { dragging = dragging || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4; if (dragging) look(e.movementX, e.movementY); }
+    if (!isTouch && brainEl.hidden) look(e.movementX, e.movementY); // mouse preso ou não: mover o mouse vira a câmera
+    else if (down) { dragging = dragging || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4; if (dragging) look(e.movementX, e.movementY); }
   } else {
     const hit = pick(...screenToNdc(e));
     setBoardHi(hit && hit.board ? hit.node : null);
@@ -762,7 +784,7 @@ function loop() {
     updatePlayer(dt);
     if ((tipT += dt) > 0.1) {
       tipT = 0;
-      const hit = isTouch || !hover.in ? pick(0, 0) : pick(hover.nx, hover.ny);
+      const hit = pick(0, 0);
       setBoardHi(hit && hit.board ? hit.node : null);
       let txt = '';
       if (hit && hit.agent && hit.dist < 10) txt = `${hit.agent.name} · ${STATUS[hit.agent.status].txt} · clique para ver`;
