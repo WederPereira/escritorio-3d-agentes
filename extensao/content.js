@@ -25,8 +25,17 @@ if (window === top) {
       else if (cmd === 'reload') location.reload();
       else if (cmd === 'volume') { vol = Math.max(0, Math.min(1, +v || 0)); applyVol(); }
     });
+    // no claude.ai a página abre rolada dentro da tela e esconde o título e o botão "Executar agora": volta ao topo
+    const toTop = () => {
+      if (!/(^|\.)claude\.ai$/.test(location.hostname)) return;
+      scrollTo(0, 0);
+      document.querySelectorAll('main, main *, [class*="overflow-y-auto"], [class*="overflow-auto"]').forEach(el => { if (el.scrollTop > 0) el.scrollTop = 0; });
+    };
     let last = '';
-    setInterval(() => { if (location.href !== last) { last = location.href; send({ url: last }); } applyVol(); }, 700);
+    setInterval(() => {
+      if (location.href !== last) { last = location.href; send({ url: last }); [400, 1200, 2500].forEach(ms => setTimeout(toTop, ms)); }
+      applyVol();
+    }, 700);
     addEventListener('keydown', e => { if (e.key === 'Escape') send({ key: 'Escape' }); }, true);
   }
 }
