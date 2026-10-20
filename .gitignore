@@ -1,5 +1,6 @@
 .claude/
 node_modules/
+pcs/
 app/log.txt
 grafo.json
 __pycache__/

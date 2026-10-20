@@ -1364,6 +1364,25 @@ function browserEl(name, title, home, search) {
 }
 if (APP) escritorioApp.onFrameUrl((name, url) => { const a = frameAddr[name]; if (a && document.activeElement !== a) a.value = url; });
 const GOOGLE = 'https://www.google.com/search?q=';
+// PCs virtuais (Linux no Docker, ver docker-compose.yml): índice do PC -> endereço da área de trabalho
+const VMS = { 0: 'http://127.0.0.1:3001/', 1: 'http://127.0.0.1:3002/', 4: 'http://127.0.0.1:3005/' };
+function vmEl(pc) {
+  const url = VMS[pc.i], name = 'pc' + pc.i;
+  const el = document.createElement('div'); el.className = 'scr';
+  el.innerHTML = `<div class="bar"><b>PC ${pc.i + 1} · computador virtual (Linux)</b><a href="${url}" target="_blank" rel="noopener">abrir em nova aba ↗</a></div>
+    <div class="panel vm-off"><h3>Ligando o PC ${pc.i + 1}…</h3></div>`;
+  const off = el.querySelector('.vm-off');
+  const check = () => fetch(url, { mode: 'no-cors', cache: 'no-store' }).then(() => {
+    off.replaceWith(Object.assign(document.createElement('iframe'), { name, src: url, allow: 'clipboard-read; clipboard-write; fullscreen; autoplay' }));
+  }, () => {
+    off.innerHTML = `<h3>PC ${pc.i + 1} desligado</h3>
+      <div>Este computador virtual roda no Docker. Abra o Docker Desktop e dê dois cliques em <b>ligar-pcs-virtuais.bat</b>.</div>
+      <div><button class="btn primary big">Tentar de novo</button></div>`;
+    off.querySelector('button').onclick = () => { off.innerHTML = `<h3>Ligando o PC ${pc.i + 1}…</h3>`; check(); };
+  });
+  check();
+  return el;
+}
 function buildApp() {
   const sheet = `https://docs.google.com/spreadsheets/d/${MEDIA.leadsSheet}/edit`;
   const cantinho = loadPref('cantinhoUrl', '');
@@ -1377,7 +1396,7 @@ function buildApp() {
   ];
   pcs.forEach(pc => {
     const [title, home, search] = homes[pc.i];
-    addScreen('pc' + pc.i, pc.screen, 1152, home ? browserEl('pc' + pc.i, title, home, search) : cantinhoEl());
+    addScreen('pc' + pc.i, pc.screen, 1152, VMS[pc.i] ? vmEl(pc) : home ? browserEl('pc' + pc.i, title, home, search) : cantinhoEl());
     pc.icon.visible = false; pc.badge = null;
   });
   addScreen('tv', tvMesh, 1280, browserEl('tv', 'TV · YouTube', 'https://www.youtube.com', 'https://www.youtube.com/results?search_query='));
@@ -1393,7 +1412,8 @@ function buildEmbeds() {
   const sheet = `https://docs.google.com/spreadsheets/d/${MEDIA.leadsSheet}`;
   pcs.forEach(pc => {
     let el;
-    if (pc.kind === 'task' && pc.taskId === 'leads') el = screenEl('PC 3 · Alerta de novos leads · planilha Leads trafego', sheet + '/edit', frame(sheet + '/edit?rm=minimal'));
+    if (VMS[pc.i]) el = vmEl(pc);
+    else if (pc.kind === 'task' && pc.taskId === 'leads') el = screenEl('PC 3 · Alerta de novos leads · planilha Leads trafego', sheet + '/edit', frame(sheet + '/edit?rm=minimal'));
     else if (pc.kind === 'task') el = taskPanel(pc);
     else if (pc.i === 3) el = screenEl('PC 4 · Agenda · próximos compromissos', 'https://calendar.google.com', frame(cal('AGENDA')));
     else if (pc.i === 4) el = screenEl('PC 5 · Agenda · semana', 'https://calendar.google.com', frame(cal('WEEK')));
