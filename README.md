@@ -20,7 +20,9 @@ Depois acesse http://localhost:8765/escritorio-3d.html.
 | --- | --- |
 | Visão de cima | arrastar para girar, rolar para zoom |
 | Andar pelo escritório | botão **Andar pelo escritório** |
-| Olhar em volta | mover o mouse (fica preso na cena, como no Minecraft; Esc solta) |
+| Olhar em volta | mover o mouse (entra em tela cheia com o mouse preso, como no Minecraft) |
+| Pausar | **Esc** abre o menu de pausa (voltar, trocar visão, sair) |
+| Girar sem mouse | Q / E ou setas ← → |
 | Andar / correr / pular | W A S D ou setas / Shift / Espaço |
 | Trocar 1ª ↔ 3ª pessoa | tecla **V** ou botão |
 | Ver um agente | mirar com a cruz no centro e clicar |

@@ -30,6 +30,13 @@
   #crosshair::before { left: 6px; top: 0; width: 2px; height: 14px; }
   #crosshair::after { top: 6px; left: 0; height: 2px; width: 14px; }
   #tip { left: 50%; top: calc(50% + 22px); transform: translateX(-50%); color: var(--fg); pointer-events: none; white-space: nowrap; max-width: 90%; overflow: hidden; text-overflow: ellipsis; }
+  #pause { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: rgba(8,10,14,.62); }
+  #pause .box { display: flex; flex-direction: column; gap: 10px; width: min(320px, calc(100% - 32px)); text-align: center; }
+  #pause h2 { margin: 0 0 6px; font-size: 22px; font-weight: 800; }
+  #pause .btn { padding: 11px 14px; font-size: 14px; }
+  #pause p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+  #pause .warn { color: var(--accent); }
+  #toast { right: max(16px, env(safe-area-inset-right, 0px)); top: 14px; max-width: min(320px, 60%); color: var(--fg); line-height: 1.5; pointer-events: none; font-family: var(--display); font-size: 13px; }
   .touchpad { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
   .touchpad .btn { width: 52px; height: 44px; font-size: 18px; touch-action: none; }
   aside { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
@@ -90,6 +97,16 @@
     <div class="chip hint" id="hint">arraste para girar · role para zoom · clique num agente ou no quadro</div>
     <div id="crosshair" hidden></div>
     <div class="chip" id="tip" hidden></div>
+    <div class="chip" id="toast" hidden></div>
+    <div id="pause" hidden>
+      <div class="box">
+        <h2>Jogo pausado</h2>
+        <button class="btn primary" id="resumeBtn">Voltar ao escritório</button>
+        <button class="btn" id="viewBtn2">Trocar 1ª / 3ª pessoa</button>
+        <button class="btn" id="quitBtn">Sair para a visão geral</button>
+        <p id="pauseMsg">Clique em “Voltar ao escritório” para entrar em tela cheia com o mouse preso. Esc pausa de novo.</p>
+      </div>
+    </div>
     <div class="touchpad" id="touchpad" hidden>
       <button class="btn" id="tFwd" aria-label="Andar para frente">▲</button>
       <button class="btn" id="tBack" aria-label="Andar para trás">▼</button>
@@ -576,13 +593,18 @@ bCanvas.addEventListener('click', e => {
   bPinned = i; bHi = i; renderBrainOverlay(); showNodeInfo(i);
 });
 function openBrain(i = null) {
+  if (document.pointerLockElement) document.exitPointerLock();
+  pauseEl.hidden = true;
   brainEl.hidden = false; bPinned = bHi = i; showNodeInfo(i);
   requestAnimationFrame(renderBrainOverlay);
 }
-function closeBrain() { brainEl.hidden = true; }
+function closeBrain(resume = true) {
+  brainEl.hidden = true;
+  if (mode === 'fp') resume ? play() : pauseEl.hidden = false;
+}
 document.getElementById('brainBtn').onclick = () => openBrain();
 document.getElementById('brainBtn2').onclick = () => openBrain();
-document.getElementById('brainClose').onclick = closeBrain;
+document.getElementById('brainClose').onclick = () => closeBrain(true);
 
 // ================= 1ª pessoa =================
 let mode = 'overview', view = 1; // view: 1 = 1ª pessoa, 3 = 3ª pessoa
@@ -616,21 +638,43 @@ function setView(v) {
   avatar.visible = mode === 'fp' && view === 3;
   viewBtn.textContent = view === 1 ? 'Ver em 3ª pessoa' : 'Ver em 1ª pessoa';
 }
-// estilo Minecraft: o mouse fica preso na cena e movê-lo vira a câmera; Esc solta
-function lockPointer() {
-  if (isTouch || document.pointerLockElement) return;
-  try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+// estilo Minecraft: tela cheia + mouse preso (o cursor some e nunca bate na borda); Esc abre o menu de pausa
+const pauseEl = document.getElementById('pause'), pauseMsg = document.getElementById('pauseMsg'), toastEl = document.getElementById('toast');
+let lockFailed = false;
+function play() { // chamado sempre dentro de um clique, que é o que o navegador exige
+  if (isTouch) { pauseEl.hidden = true; return; }
+  if (!document.fullscreenElement && stage.requestFullscreen) stage.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+  try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => lockError()); } catch (e) { lockError(); }
 }
-function fpHint() {
-  hintEl.textContent = isTouch ? 'arraste para olhar · ▲▼ para andar · toque para selecionar'
-    : document.pointerLockElement ? 'WASD andar · Espaço pular · Shift correr · V 1ª/3ª pessoa · clique interage · Esc solta o mouse'
-    : 'clique na cena para prender o mouse · ou mova o mouse para olhar';
+function lockError() {
+  lockFailed = true;
+  pauseEl.hidden = false;
+  pauseMsg.className = 'warn';
+  pauseMsg.textContent = 'Esta janela não deixou prender o mouse. Abra o arquivo escritorio-3d.html direto no Chrome (ou clique de novo). Enquanto isso, Q e E ou as setas giram a câmera.';
 }
+document.addEventListener('pointerlockerror', lockError);
 document.addEventListener('pointerlockchange', () => {
   if (mode !== 'fp') return;
-  renderer.domElement.style.cursor = document.pointerLockElement ? 'none' : 'crosshair';
+  const locked = !!document.pointerLockElement;
+  renderer.domElement.style.cursor = locked ? 'none' : 'default';
+  if (locked) { lockFailed = false; pauseEl.hidden = true; pauseMsg.className = ''; }
+  else if (brainEl.hidden) { pauseEl.hidden = false; Object.keys(keys).forEach(k => keys[k] = false); }
   fpHint();
 });
+document.addEventListener('fullscreenchange', () => {
+  if (mode === 'fp' && document.fullscreenElement && !document.pointerLockElement && !lockFailed) {
+    try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  }
+});
+function fpHint() {
+  hintEl.textContent = isTouch ? 'arraste para olhar · ▲▼ para andar · toque para selecionar'
+    : 'WASD andar · Espaço pular · Shift correr · V 1ª/3ª pessoa · clique interage · Esc pausa';
+}
+document.getElementById('resumeBtn').onclick = play;
+document.getElementById('viewBtn2').onclick = () => setView(view === 1 ? 3 : 1);
+document.getElementById('quitBtn').onclick = () => exitFP();
+let toastTimer = 0;
+function toast(html) { toastEl.innerHTML = html; toastEl.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.hidden = true, 4500); }
 function enterFP() {
   mode = 'fp';
   savedCam.pos.copy(camera.position); savedCam.target.copy(controls.target);
@@ -638,13 +682,15 @@ function enterFP() {
   modeBtn.textContent = 'Visão geral';
   viewBtn.hidden = false; setView(view);
   crossEl.hidden = false; touchEl.hidden = !isTouch;
-  renderer.domElement.style.cursor = 'crosshair';
   fpHint();
-  lockPointer();
+  play();
 }
 function exitFP() {
   mode = 'overview';
+  pauseEl.hidden = true; toastEl.hidden = true;
   if (document.pointerLockElement) document.exitPointerLock();
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  renderer.domElement.style.cursor = 'grab';
   camera.position.copy(savedCam.pos); controls.target.copy(savedCam.target); controls.enabled = true;
   modeBtn.textContent = 'Andar pelo escritório';
   viewBtn.hidden = true; avatar.visible = false;
@@ -656,10 +702,11 @@ modeBtn.onclick = () => mode === 'fp' ? exitFP() : enterFP();
 viewBtn.onclick = () => setView(view === 1 ? 3 : 1);
 addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input, textarea')) return;
+  if (e.code === 'Escape' && !brainEl.hidden) { closeBrain(false); return; }
+  if (mode === 'fp' && !pauseEl.hidden) return; // pausado: teclado não move
   keys[e.code] = true;
   if (mode === 'fp' && ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
   if (mode === 'fp' && e.code === 'KeyV') setView(view === 1 ? 3 : 1);
-  if (e.code === 'Escape' && !brainEl.hidden) closeBrain();
 });
 addEventListener('keyup', e => keys[e.code] = false);
 addEventListener('blur', () => Object.keys(keys).forEach(k => keys[k] = false));
@@ -680,8 +727,8 @@ function updatePlayer(dt) {
   if (keys.KeyS || keys.ArrowDown) f -= 1;
   if (keys.KeyD) s += 1;
   if (keys.KeyA) s -= 1;
-  if (keys.ArrowLeft) player.yaw += 2 * dt;
-  if (keys.ArrowRight) player.yaw -= 2 * dt;
+  if (keys.ArrowLeft || keys.KeyQ) player.yaw += 2.2 * dt;
+  if (keys.ArrowRight || keys.KeyE) player.yaw -= 2.2 * dt;
   // pulo
   if (keys.Space && player.y === 0) player.vy = 4.6;
   player.vy -= 13 * dt; player.y = Math.max(0, player.y + player.vy * dt);
@@ -730,7 +777,10 @@ function screenToNdc(e) {
 }
 function act(hit) {
   if (!hit) { select(null); return; }
-  if (hit.agent) select(hit.agent);
+  if (hit.agent) {
+    select(hit.agent);
+    if (mode === 'fp') toast(`<b>${hit.agent.name}</b> · ${hit.agent.role}<br>${STATUS[hit.agent.status].txt}${hit.agent.task ? ' · ' + hit.agent.task : ''}`);
+  }
   else if (hit.board) openBrain(hit.node);
 }
 
@@ -738,7 +788,7 @@ let down = null, dragging = false;
 renderer.domElement.addEventListener('pointerdown', e => {
   down = [e.clientX, e.clientY]; dragging = false;
   if (mode !== 'fp' || isTouch) return;
-  if (document.pointerLockElement) act(pick(0, 0)); else lockPointer();
+  if (document.pointerLockElement) act(pick(0, 0)); else play();
   down = null;
 });
 renderer.domElement.addEventListener('pointerenter', () => hover.in = true);
@@ -746,7 +796,7 @@ renderer.domElement.addEventListener('pointerleave', () => hover.in = false);
 renderer.domElement.addEventListener('pointermove', e => {
   [hover.nx, hover.ny] = screenToNdc(e); hover.in = true;
   if (mode === 'fp') {
-    if (!isTouch && brainEl.hidden) look(e.movementX, e.movementY); // mouse preso ou não: mover o mouse vira a câmera
+    if (document.pointerLockElement) look(e.movementX, e.movementY);
     else if (down) { dragging = dragging || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4; if (dragging) look(e.movementX, e.movementY); }
   } else {
     const hit = pick(...screenToNdc(e));
