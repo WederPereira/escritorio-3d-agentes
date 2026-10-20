@@ -1292,14 +1292,18 @@ pickables.push(tvMesh, spMesh);
 
 const cssScene = new THREE.Scene();
 let cssRenderer = null;
+// a cena está em metros; a camada de sites é desenhada 100x maior (em centímetros), senão o navegador
+// não acerta em qual elemento o clique caiu (o site parece normal, mas não recebe o clique)
+const CSS_S = 100;
+const cssCamera = new THREE.PerspectiveCamera();
 const focusables = []; // {key, mesh, w, h, el}
 function addScreen(key, mesh, pxW, el) {
   const p = mesh.geometry.parameters;
   el.style.width = pxW + 'px'; el.style.height = Math.round(pxW * p.height / p.width) + 'px';
   const obj = new THREE.CSS3DObject(el);
-  const s = p.width / pxW; obj.scale.set(s, s, s);
+  const s = p.width / pxW * CSS_S; obj.scale.set(s, s, s);
   mesh.updateWorldMatrix(true, false);
-  mesh.getWorldPosition(obj.position); mesh.getWorldQuaternion(obj.quaternion);
+  mesh.getWorldPosition(obj.position).multiplyScalar(CSS_S); mesh.getWorldQuaternion(obj.quaternion);
   cssScene.add(obj);
   // o plano no WebGL vira um "buraco" transparente, por onde aparece a página que está atrás
   mesh.material = new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0, blending: THREE.NoBlending });
@@ -1693,6 +1697,7 @@ function reclaimKeyboard() {
 }
 function unfocus() {
   if (!focusRef) return;
+  unflatten();
   focusRef = null;
   reclaimKeyboard();
   stage.classList.remove('focused'); cssRenderer.domElement.classList.remove('live');
@@ -1707,6 +1712,27 @@ function updateFocus(dt) {
   const k = 1 - Math.pow(1 - focusT, 3);
   camera.position.lerpVectors(focusFrom.pos, focusTo.pos, k);
   camera.quaternion.slerpQuaternions(focusFrom.quat, focusTo.quat, k);
+  if (focusT >= 1) requestAnimationFrame(() => focusRef && flatten(focusRef));
+}
+// O Chrome não acerta cliques dentro da camada 3D. Sentado na frente da tela, o site é "achatado"
+// exatamente no lugar onde aparece (o iframe não muda de lugar no DOM, então não recarrega).
+let flat = null;
+function flatten(f) {
+  if (flat || !cssRenderer) return;
+  const dom = cssRenderer.domElement, cam = dom.firstChild, r = f.el.getBoundingClientRect();
+  flat = { f, persp: dom.style.perspective, camT: cam.style.transform, elT: f.el.style.transform };
+  dom.style.perspective = 'none'; cam.style.transform = 'none';
+  focusables.forEach(o => { if (o !== f) o.el.style.visibility = 'hidden'; });
+  f.el.style.transformOrigin = '0 0';
+  f.el.style.transform = `translate(${r.left}px, ${r.top}px) scale(${r.width / f.el.offsetWidth})`;
+}
+function unflatten() {
+  if (!flat) return;
+  const dom = cssRenderer.domElement, cam = dom.firstChild;
+  dom.style.perspective = flat.persp; cam.style.transform = flat.camT;
+  flat.f.el.style.transformOrigin = ''; flat.f.el.style.transform = flat.elT;
+  focusables.forEach(o => o.el.style.visibility = '');
+  flat = null;
 }
 function focusByMesh(mesh) { const f = focusables.find(x => x.mesh === mesh); if (f) focusOn(f); return !!f; }
 
@@ -1749,7 +1775,10 @@ function loop() {
   } else controls.update();
   if ((audioT += dt) > 0.2) { audioT = 0; updateAudio(); }
   renderer.render(scene, camera);
-  if (cssRenderer) cssRenderer.render(cssScene, camera);
+  if (cssRenderer && !flat) {
+    cssCamera.copy(camera, false); cssCamera.position.multiplyScalar(CSS_S); cssCamera.updateMatrixWorld();
+    cssRenderer.render(cssScene, cssCamera);
+  }
   requestAnimationFrame(loop);
 }
 renderList(); renderDetail(); drawBoard(); drawBrainBoard();
