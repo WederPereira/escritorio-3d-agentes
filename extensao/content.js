@@ -24,6 +24,12 @@ if (window === top) {
       else if (cmd === 'forward') history.forward();
       else if (cmd === 'reload') location.reload();
       else if (cmd === 'volume') { vol = Math.max(0, Math.min(1, +v || 0)); applyVol(); }
+      else if (cmd === 'click' && typeof v === 'string') {
+        // clica no primeiro elemento que casar com o seletor, esperando até 10 s ele aparecer
+        const t0 = Date.now();
+        const tryClick = () => { const el = document.querySelector(v); if (el) el.click(); else if (Date.now() - t0 < 10000) setTimeout(tryClick, 300); };
+        tryClick();
+      }
       else if (cmd === 'css' && typeof v === 'string') {
         // ajustes de visual que o escritório manda para o site da tela (ex.: o claude.ai esconde o título quando está dentro de outra página)
         let st = document.getElementById('escritorio-css');

@@ -1325,7 +1325,7 @@ const SITE_CSS = {
   'claude.ai': '.mt-frame-row{padding-top:4.5rem!important}',
 };
 if (APP) {
-  const urlCbs = [], escCbs = [];
+  const urlCbs = [], escCbs = [], openedLatest = {};
   const postCmd = (name, m) => { const fr = document.querySelector(`iframe[name="${name}"]`); if (fr && fr.contentWindow) fr.contentWindow.postMessage(Object.assign({ esc: 'cmd' }, m), '*'); };
   addEventListener('message', e => {
     if (!e.data || e.data.esc !== 'tela') return;
@@ -1334,6 +1334,11 @@ if (APP) {
       urlCbs.forEach(cb => cb(fr.name, e.data.url));
       const css = SITE_CSS[e.data.host];
       if (css) postCmd(fr.name, { cmd: 'css', v: css });
+      // PCs das tarefas: na primeira vez que a página da tarefa abre, entra no chat da execução mais recente
+      if (/\/scheduled-task\/trig_/.test(e.data.url) && !openedLatest[fr.name]) {
+        openedLatest[fr.name] = true;
+        postCmd(fr.name, { cmd: 'click', v: 'li a[href^="/cowork/cse_"]' });
+      }
     }
     if (e.data.key === 'Escape') escCbs.forEach(cb => cb());
   });
