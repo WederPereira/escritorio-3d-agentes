@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     }, {
       // página de assistir do YouTube aberta numa tela vira o player do YouTube (que aceita abrir aqui e tem tela cheia)
       id: id + 500000, priority: 2,
-      action: { type: 'redirect', redirect: { regexSubstitution: 'https://www.youtube.com/embed/\\2?autoplay=1&rel=1&playsinline=1' } },
+      action: { type: 'redirect', redirect: { regexSubstitution: OFFICE + '/yt.html?v=\\2' } },
       condition: { tabIds: [tabId], resourceTypes: ['sub_frame'], regexFilter: '^https://(www\\.|m\\.)?youtube\\.com/watch\\?(?:.*&)?v=([\\w-]{11}).*' },
     }],
   }).then(() => reply(true), () => reply(false));
