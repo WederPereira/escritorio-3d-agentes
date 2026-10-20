@@ -30,8 +30,35 @@ function serve() {
   });
 }
 
-// sem a marca "Electron" no navegador, os sites tratam o app como um Chrome normal
+// O Google recusa login e mostra "não sou um robô" quando o navegador não parece um Chrome comum.
+// Por isso o app se apresenta igual ao Chrome: texto do navegador sem "Electron" e as mesmas "marcas"
+// (userAgentData / Sec-CH-UA) que o Chrome envia, em todas as telas, janelas e workers.
 app.userAgentFallback = app.userAgentFallback.replace(/ Electron\/\S+/, '').replace(/ escritorio-3d-agentes\/\S+/, '');
+const CHROME_FULL = (process.versions.chrome || '150.0.0.0');
+const CHROME_MAJOR = CHROME_FULL.split('.')[0];
+const UA_OVERRIDE = {
+  userAgent: app.userAgentFallback,
+  acceptLanguage: 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+  platform: 'Win32',
+  userAgentMetadata: {
+    brands: [{ brand: 'Google Chrome', version: CHROME_MAJOR }, { brand: 'Chromium', version: CHROME_MAJOR }, { brand: 'Not;A=Brand', version: '8' }],
+    fullVersionList: [{ brand: 'Google Chrome', version: CHROME_FULL }, { brand: 'Chromium', version: CHROME_FULL }, { brand: 'Not;A=Brand', version: '8.0.0.0' }],
+    fullVersion: CHROME_FULL, platform: 'Windows', platformVersion: '15.0.0', architecture: 'x86', model: '', mobile: false, bitness: '64', wow64: false,
+  },
+};
+function disguise(wc) {
+  const dbg = wc.debugger;
+  try { dbg.attach('1.3'); } catch (e) { return; }
+  const apply = sessionId => {
+    dbg.sendCommand('Emulation.setUserAgentOverride', UA_OVERRIDE, sessionId).catch(() => {})
+      .then(() => dbg.sendCommand('Runtime.runIfWaitingForDebugger', {}, sessionId).catch(() => {}));
+    dbg.sendCommand('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true }, sessionId).catch(() => {});
+  };
+  dbg.on('message', (e, method, params) => { if (method === 'Target.attachedToTarget') apply(params.sessionId); });
+  dbg.sendCommand('Emulation.setUserAgentOverride', UA_OVERRIDE).catch(() => {});
+  dbg.sendCommand('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true }).catch(() => {});
+}
+app.on('web-contents-created', (e, wc) => disguise(wc));
 
 let win = null;
 function childFrame(name) {
@@ -39,7 +66,10 @@ function childFrame(name) {
 }
 
 app.whenReady().then(async () => {
-  if (components && components.whenReady) { try { await components.whenReady(); } catch (e) { console.warn('Widevine não carregou:', e); } }
+  if (components && components.whenReady) {
+    try { await components.whenReady(); } catch (e) { console.warn('Widevine não carregou:', e); }
+    console.log('componentes:', JSON.stringify(components.status && components.status()));
+  }
   await serve();
 
   session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
@@ -49,6 +79,10 @@ app.whenReady().then(async () => {
       if (l === 'x-frame-options') delete h[k];
       if (l === 'content-security-policy' || l === 'content-security-policy-report-only') h[k] = h[k].map(v => v.replace(/frame-ancestors[^;]*;?/gi, ''));
       if (l === 'cross-origin-opener-policy' || l === 'cross-origin-embedder-policy') delete h[k];
+      // dentro das telas todo site é "de outro site"; cookies Lax/Strict não seriam enviados e o login não ficaria salvo
+      if (l === 'set-cookie' && details.url.startsWith('https://')) {
+        h[k] = h[k].map(c => /;\s*samesite=none/i.test(c) ? c : c.replace(/;\s*samesite=(lax|strict)/ig, '') + '; SameSite=None' + (/;\s*secure/i.test(c) ? '' : '; Secure'));
+      }
     }
     cb({ responseHeaders: h });
   });
@@ -78,6 +112,24 @@ app.whenReady().then(async () => {
   });
 
   win.loadURL(PAGE);
+
+  // autoteste (ESCRITORIO_TESTE=1): abre um vídeo na TV, espera e salva foto + estado em app\teste-*.png/log.txt
+  const testeArg = process.argv.find(a => a.startsWith('--teste='));
+  if (testeArg) win.webContents.once('dom-ready', () => setTimeout(async () => {
+    const step = testeArg.split('=')[1];
+    await win.webContents.executeJavaScript(`(()=>{ const f=focusables.find(f=>f.key==='tv'); focusOn(f); setTimeout(()=>{ f.el.querySelector('iframe').src='https://www.youtube.com/watch?v=lTRiuFIWV54'; }, 1200); return 1; })()`).catch(e => log('teste js', e.message));
+    setTimeout(async () => {
+      const fr = childFrame('tv');
+      const alive = fr ? await Promise.race([fr.executeJavaScript('location.href + " | " + document.title + " | video:" + !!document.querySelector("video")'), new Promise(r => setTimeout(() => r('SEM RESPOSTA'), 4000))]) : 'sem frame';
+      log('teste', step, 'tv frame:', alive);
+      const img = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(__dirname, `teste-${step}.png`), img.toPNG());
+      if (process.argv.includes('--teste-fs') && fr) {
+        await fr.executeJavaScript('document.querySelector(".ytp-fullscreen-button") && document.querySelector(".ytp-fullscreen-button").click()', true).catch(() => {});
+        setTimeout(async () => { const i2 = await win.webContents.capturePage(); fs.writeFileSync(path.join(__dirname, `teste-${step}-fs.png`), i2.toPNG()); log('teste fs feito'); }, 3000);
+      }
+    }, 14000);
+  }, 6000));
 });
 
 ipcMain.handle('nav', (e, name, cmd) => {
@@ -93,5 +145,11 @@ ipcMain.handle('volume', (e, name, v) => {
   fr.executeJavaScript(`document.querySelectorAll('video,audio').forEach(m => { m.volume = ${vol}; })`).catch(() => {});
   return true;
 });
+
+// registro de travamentos das telas, para diagnóstico (app\log.txt)
+const LOG = path.join(__dirname, 'log.txt');
+const log = (...a) => { try { fs.appendFileSync(LOG, new Date().toISOString() + ' ' + a.map(x => typeof x === 'string' ? x : JSON.stringify(x)).join(' ') + '\n'); } catch (e) {} };
+app.on('render-process-gone', (e, wc, d) => log('render-process-gone', wc.getURL(), d));
+app.on('child-process-gone', (e, d) => log('child-process-gone', d));
 
 app.on('window-all-closed', () => app.quit());
