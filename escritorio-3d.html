@@ -19,6 +19,8 @@
   #stage { background: var(--bg); }
   #stage canvas.scene { display: block; cursor: grab; position: relative; z-index: 1; }
   .css3d { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  /* tudo que fica por cima da cena precisa estar acima do canvas (z-index 1) para receber cliques */
+  .modebar, .chip, #crosshair, .touchpad { z-index: 3; }
   .css3d.live { pointer-events: auto; }
   #stage.focused canvas.scene { pointer-events: none; }
   .scr { background: #0d1420; color: var(--fg); display: flex; flex-direction: column; overflow: hidden; font-family: var(--display); }
@@ -1072,8 +1074,10 @@ let lockFailed = false;
 function play() { // chamado sempre dentro de um clique, que é o que o navegador exige
   if (typeof reclaimKeyboard === 'function') reclaimKeyboard();
   if (isTouch) { pauseEl.hidden = true; return; }
+  // o mouse preso vem primeiro: o pedido de tela cheia "gasta" o clique e o Chrome recusaria prender o mouse depois dele
+  lockFailed = false;
+  try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => { if (!document.fullscreenElement) lockError(); }); } catch (e) {}
   if (!document.fullscreenElement && stage.requestFullscreen) stage.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
-  try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => lockError()); } catch (e) { lockError(); }
 }
 function lockError() {
   lockFailed = true;
@@ -1091,8 +1095,8 @@ document.addEventListener('pointerlockchange', () => {
   fpHint();
 });
 document.addEventListener('fullscreenchange', () => {
-  if (mode === 'fp' && document.fullscreenElement && !document.pointerLockElement && !lockFailed) {
-    try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  if (mode === 'fp' && document.fullscreenElement && !document.pointerLockElement && !focusRef) {
+    try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => lockError()); } catch (e) { lockError(); }
   }
 });
 function fpHint() {
