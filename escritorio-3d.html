@@ -1319,13 +1319,22 @@ const frame = src => `<iframe src="${src}" allow="autoplay; encrypted-media; cli
 // Com a extensão "Escritório dos Agentes · telas" instalada no Chrome, cada tela é um navegador de verdade:
 // qualquer site abre (YouTube inteiro, Claude, Agenda...) com os logins que você já tem no Chrome.
 const APP = document.documentElement.dataset.escritorioExt === '1';
+// ajustes de visual por site, aplicados dentro das telas pela extensão
+const SITE_CSS = {
+  // o claude.ai, dentro de outra página, desce a barra do caminho por cima do título e do botão "Executar agora"
+  'claude.ai': '.mt-frame-row{padding-top:4.5rem!important}',
+};
 if (APP) {
   const urlCbs = [], escCbs = [];
   const postCmd = (name, m) => { const fr = document.querySelector(`iframe[name="${name}"]`); if (fr && fr.contentWindow) fr.contentWindow.postMessage(Object.assign({ esc: 'cmd' }, m), '*'); };
   addEventListener('message', e => {
     if (!e.data || e.data.esc !== 'tela') return;
     const fr = [...document.querySelectorAll('iframe[name]')].find(f => f.contentWindow === e.source); if (!fr) return;
-    if (e.data.url) urlCbs.forEach(cb => cb(fr.name, e.data.url));
+    if (e.data.url) {
+      urlCbs.forEach(cb => cb(fr.name, e.data.url));
+      const css = SITE_CSS[e.data.host];
+      if (css) postCmd(fr.name, { cmd: 'css', v: css });
+    }
     if (e.data.key === 'Escape') escCbs.forEach(cb => cb());
   });
   window.escritorioApp = {
@@ -1348,12 +1357,11 @@ function browserEl(name, title, home, search) {
   el.innerHTML = `<div class="bar nav">
       <button data-n="back" title="Voltar">◀</button><button data-n="forward" title="Avançar">▶</button>
       <button data-n="reload" title="Recarregar">⟳</button><button data-n="home" title="Início">⌂</button>
-      <input class="addr" value="${escapeHtml(home)}" spellcheck="false"><button data-n="tab" title="Abrir esta página numa aba do Chrome">↗</button><b>${title}</b></div>
+      <input class="addr" value="${escapeHtml(home)}" spellcheck="false"><b>${title}</b></div>
     <iframe name="${name}" src="${escapeHtml(home)}" allow="autoplay; encrypted-media; clipboard-read; clipboard-write; fullscreen; microphone; camera; picture-in-picture"></iframe>`;
   const fr = el.querySelector('iframe'), addr = el.querySelector('.addr');
   el.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
     if (b.dataset.n === 'home') fr.src = home;
-    else if (b.dataset.n === 'tab') window.open(addr.value || home, '_blank', 'noopener');
     else escritorioApp.nav(name, b.dataset.n);
   });
   addr.addEventListener('keydown', e => {

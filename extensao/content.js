@@ -24,9 +24,15 @@ if (window === top) {
       else if (cmd === 'forward') history.forward();
       else if (cmd === 'reload') location.reload();
       else if (cmd === 'volume') { vol = Math.max(0, Math.min(1, +v || 0)); applyVol(); }
+      else if (cmd === 'css' && typeof v === 'string') {
+        // ajustes de visual que o escritório manda para o site da tela (ex.: o claude.ai esconde o título quando está dentro de outra página)
+        let st = document.getElementById('escritorio-css');
+        if (!st) { st = document.createElement('style'); st.id = 'escritorio-css'; (document.head || document.documentElement).appendChild(st); }
+        st.textContent = v;
+      }
     });
     let last = '';
-    setInterval(() => { if (location.href !== last) { last = location.href; send({ url: last }); } applyVol(); }, 700);
+    setInterval(() => { if (location.href !== last) { last = location.href; send({ url: last, host: location.hostname }); } applyVol(); }, 700);
     addEventListener('keydown', e => { if (e.key === 'Escape') send({ key: 'Escape' }); }, true);
   }
 }
