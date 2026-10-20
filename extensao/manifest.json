@@ -3,7 +3,7 @@
   "name": "Escritório dos Agentes · telas",
   "version": "1.0.0",
   "description": "Deixa os sites abrirem dentro das telas do Escritório 3D (só na aba do escritório em 127.0.0.1:8765).",
-  "permissions": ["declarativeNetRequest"],
+  "permissions": ["declarativeNetRequest", "cookies"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
   "content_scripts": [
