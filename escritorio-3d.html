@@ -1316,8 +1316,32 @@ function screenEl(title, link, bodyHtml) {
 }
 const frame = src => `<iframe src="${src}" allow="autoplay; encrypted-media; clipboard-write; fullscreen" loading="lazy"></iframe>`;
 
-// No app do escritório (Electron) cada tela é um navegador de verdade: qualquer site abre, inclusive o YouTube inteiro
-const APP = !!(window.escritorioApp && window.escritorioApp.isApp);
+// Com a extensão "Escritório dos Agentes · telas" instalada no Chrome, cada tela é um navegador de verdade:
+// qualquer site abre (YouTube inteiro, Claude, Agenda...) com os logins que você já tem no Chrome.
+const APP = document.documentElement.dataset.escritorioExt === '1';
+if (APP) {
+  const urlCbs = [], escCbs = [];
+  const postCmd = (name, m) => { const fr = document.querySelector(`iframe[name="${name}"]`); if (fr && fr.contentWindow) fr.contentWindow.postMessage(Object.assign({ esc: 'cmd' }, m), '*'); };
+  addEventListener('message', e => {
+    if (!e.data || e.data.esc !== 'tela') return;
+    const fr = [...document.querySelectorAll('iframe[name]')].find(f => f.contentWindow === e.source); if (!fr) return;
+    if (e.data.url) urlCbs.forEach(cb => cb(fr.name, e.data.url));
+    if (e.data.key === 'Escape') escCbs.forEach(cb => cb());
+  });
+  window.escritorioApp = {
+    isApp: true,
+    nav: (name, cmd) => postCmd(name, { cmd }),
+    volume: (name, v) => postCmd(name, { cmd: 'volume', v }),
+    onFrameUrl: cb => urlCbs.push(cb),
+    onEsc: cb => escCbs.push(cb),
+  };
+}
+// espera a extensão liberar as telas desta aba antes de abrir os sites
+const extReady = () => new Promise(res => {
+  if (!APP || document.documentElement.dataset.escritorioRegra) return res();
+  const t = setTimeout(res, 2000);
+  addEventListener('message', e => { if (e.data && e.data.esc === 'ext-pronta') { clearTimeout(t); res(); } });
+});
 const frameAddr = {};
 function browserEl(name, title, home, search) {
   const el = document.createElement('div'); el.className = 'scr';
@@ -1736,7 +1760,7 @@ function unflatten() {
 }
 function focusByMesh(mesh) { const f = focusables.find(x => x.mesh === mesh); if (f) focusOn(f); return !!f; }
 
-if (EMBED) { buildEmbeds(); if (!APP) { startYouTube(); spBoot(); } }
+if (EMBED) extReady().then(() => { buildEmbeds(); if (!APP) { startYouTube(); spBoot(); } });
 if (APP && escritorioApp.onEsc) escritorioApp.onEsc(() => { if (focusRef) unfocus(); });
 
 // ================= loop =================
