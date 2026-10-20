@@ -1,0 +1,13 @@
+{
+  "name": "escritorio-3d-agentes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Escritório 3D dos agentes com navegador interno nos computadores e na TV",
+  "main": "app/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "github:castlabs/electron-releases#v43.7.7+wvcus"
+  }
+}

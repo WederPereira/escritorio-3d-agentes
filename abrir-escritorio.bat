@@ -1,7 +1,9 @@
 @echo off
-rem Abre o Escritorio dos Agentes no Chrome com TV, Spotify e sites dentro dos computadores.
-rem Usa 127.0.0.1 porque o Spotify so aceita login nesse endereco.
+rem Abre o Escritorio dos Agentes como app proprio (navegador interno nas telas: YouTube, Agenda, Claude, Spotify).
 cd /d "%~dp0"
-start "Escritorio 3D - servidor (feche para desligar)" /min python -m http.server 8765 --bind 127.0.0.1
-timeout /t 2 /nobreak >nul
-start "" chrome "http://127.0.0.1:8765/escritorio-3d.html"
+if not exist "node_modules\electron\dist\electron.exe" (
+  echo Instalando o app do escritorio pela primeira vez...
+  call npm install
+  node node_modules\electron\install.js
+)
+start "" "node_modules\electron\dist\electron.exe" .

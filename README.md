@@ -6,7 +6,20 @@ Tudo fica em um único arquivo: [`escritorio-3d.html`](escritorio-3d.html). Ele 
 
 ## Como abrir
 
-Dê dois cliques em **`abrir-escritorio.bat`**. Ele liga um servidor local e abre o escritório no Chrome em http://127.0.0.1:8765/escritorio-3d.html.
+Dê dois cliques em **`abrir-escritorio.bat`**. Na primeira vez ele instala o app (precisa do Node.js), depois abre o **app do escritório**: um navegador próprio em que cada monitor, a TV e a caixa de som são navegadores de verdade, com voltar, avançar, recarregar, início e barra de endereço.
+
+| Tela | Abre em |
+| --- | --- |
+| PC 1 e PC 2 | claude.ai (relatórios diário e semanal) |
+| PC 3 | planilha Leads tráfego |
+| PC 4 e PC 5 | Google Agenda (lista e semana) |
+| PC 6 | sistema do Cantinho do Au Au |
+| TV | youtube.com completo, com busca, login e tudo |
+| Caixa de som | open.spotify.com (player completo; o volume baixa com a distância) |
+
+No app, as proteções que impedem um site de abrir dentro de outro são retiradas só dentro do próprio app. O Electron usado é a versão da castLabs com Widevine, para o Spotify tocar.
+
+O mesmo arquivo também abre no Chrome (http://127.0.0.1:8765/escritorio-3d.html com `python -m http.server 8765 --bind 127.0.0.1`), com as limitações de lá descritas abaixo.
 
 Nessa versão do computador, os monitores, a TV e a caixa de som mostram sites de verdade:
 

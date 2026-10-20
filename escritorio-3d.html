@@ -35,6 +35,10 @@
   .scr .panel .note { color: var(--muted); font-size: 18px; }
   .scr form { display: flex; gap: 10px; }
   .scr .big { font-size: 22px; padding: 12px 16px; }
+  .scr .bar.nav { gap: 8px; }
+  .scr .bar.nav button { width: 44px; padding: 6px 0; font-size: 18px; }
+  .scr .bar.nav .addr { flex: 1; }
+  .scr .bar.nav b { flex: none; max-width: 32%; font-size: 17px; color: var(--muted); }
   .scr .ytwrap { flex: 1; position: relative; display: flex; min-height: 0; }
   .scr .ytres { position: absolute; inset: 0; background: #0d1420; overflow-y: auto; z-index: 2; }
   .scr .ytgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; padding: 22px 24px; }
@@ -1308,10 +1312,55 @@ function screenEl(title, link, bodyHtml) {
 }
 const frame = src => `<iframe src="${src}" allow="autoplay; encrypted-media; clipboard-write; fullscreen" loading="lazy"></iframe>`;
 
+// No app do escritório (Electron) cada tela é um navegador de verdade: qualquer site abre, inclusive o YouTube inteiro
+const APP = !!(window.escritorioApp && window.escritorioApp.isApp);
+const frameAddr = {};
+function browserEl(name, title, home, search) {
+  const el = document.createElement('div'); el.className = 'scr';
+  el.innerHTML = `<div class="bar nav">
+      <button data-n="back" title="Voltar">◀</button><button data-n="forward" title="Avançar">▶</button>
+      <button data-n="reload" title="Recarregar">⟳</button><button data-n="home" title="Início">⌂</button>
+      <input class="addr" value="${escapeHtml(home)}" spellcheck="false"><b>${title}</b></div>
+    <iframe name="${name}" src="${escapeHtml(home)}" allow="autoplay; encrypted-media; clipboard-read; clipboard-write; fullscreen; microphone; camera; picture-in-picture"></iframe>`;
+  const fr = el.querySelector('iframe'), addr = el.querySelector('.addr');
+  el.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { if (b.dataset.n === 'home') fr.src = home; else escritorioApp.nav(name, b.dataset.n); });
+  addr.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    let v = addr.value.trim(); if (!v) return;
+    if (!/^https?:\/\//i.test(v)) v = /^[^\s]+\.[^\s]{2,}$/.test(v) ? 'https://' + v : search + encodeURIComponent(v);
+    fr.src = v; addr.blur();
+  });
+  addr.addEventListener('focus', () => addr.select());
+  frameAddr[name] = addr;
+  return el;
+}
+if (APP) escritorioApp.onFrameUrl((name, url) => { const a = frameAddr[name]; if (a && document.activeElement !== a) a.value = url; });
+const GOOGLE = 'https://www.google.com/search?q=';
+function buildApp() {
+  const sheet = `https://docs.google.com/spreadsheets/d/${MEDIA.leadsSheet}/edit`;
+  const cantinho = loadPref('cantinhoUrl', '');
+  const homes = [
+    ['PC 1 · Relatório diário · Claude', 'https://claude.ai/new', GOOGLE],
+    ['PC 2 · Relatório semanal · Claude', 'https://claude.ai/new', GOOGLE],
+    ['PC 3 · Leads tráfego', sheet, GOOGLE],
+    ['PC 4 · Agenda', 'https://calendar.google.com/calendar/r/agenda', GOOGLE],
+    ['PC 5 · Agenda da semana', 'https://calendar.google.com/calendar/r/week', GOOGLE],
+    ['PC 6 · Cantinho do Au Au', cantinho, GOOGLE],
+  ];
+  pcs.forEach(pc => {
+    const [title, home, search] = homes[pc.i];
+    addScreen('pc' + pc.i, pc.screen, 1152, home ? browserEl('pc' + pc.i, title, home, search) : cantinhoEl());
+    pc.icon.visible = false; pc.badge = null;
+  });
+  addScreen('tv', tvMesh, 1280, browserEl('tv', 'TV · YouTube', 'https://www.youtube.com', 'https://www.youtube.com/results?search_query='));
+  addScreen('spotify', spMesh, 420, browserEl('spotify', 'Spotify', 'https://open.spotify.com', 'https://open.spotify.com/search/'));
+}
+
 function buildEmbeds() {
   cssRenderer = new THREE.CSS3DRenderer();
   cssRenderer.domElement.className = 'css3d';
   stage.insertBefore(cssRenderer.domElement, renderer.domElement);
+  if (APP) { buildApp(); resize(); return; }
   const cal = mode => `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(MEDIA.calendarId)}&ctz=America%2FSao_Paulo&mode=${mode}&showTitle=0&showPrint=0&bgcolor=%23ffffff`;
   const sheet = `https://docs.google.com/spreadsheets/d/${MEDIA.leadsSheet}`;
   pcs.forEach(pc => {
@@ -1358,6 +1407,7 @@ function cantinhoEl() {
     e.preventDefault();
     const v = f.querySelector('input').value.trim(); if (!/^https?:\/\//i.test(v)) return;
     savePref('cantinhoUrl', v);
+    if (APP) { location.reload(); return; }
     el.innerHTML = screenEl('PC 6 · Sistema Cantinho do Au Au', v, frame(v)).innerHTML;
   };
   return el;
@@ -1548,6 +1598,7 @@ function renderSpotify() {
 
 // som ambiente com posição: ar-condicionado, teclado de quem está trabalhando e a máquina de café
 let soundOn = true, listener = null, ambient = null;
+const appVol = {};
 function noiseBuffer(ctx, secs, brown) {
   const b = ctx.createBuffer(1, ctx.sampleRate * secs, ctx.sampleRate), d = b.getChannelData(0); let last = 0;
   for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; if (brown) { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w; }
@@ -1586,6 +1637,14 @@ function updateAudio() {
     const i = deskSpots.indexOf(a.desk), pa = ambient.deskSounds[i];
     if (pa) pa.setVolume(a.status === 'working' && !a.path.length ? 0.9 : 0);
   });
+  if (APP) { // no app, o volume dos vídeos e músicas dentro das telas é ajustado direto na página
+    const dSp = Math.min(...speakerPos.map(p => camera.position.distanceTo(p))), dTv = camera.position.distanceTo(tvMesh.position);
+    const vTv = !soundOn ? 0 : focusRef && focusRef.key === 'tv' ? 1 : Math.min(1, 1.6 / Math.max(1.6, dTv)) ** 1.2;
+    const vSp = !soundOn ? 0 : focusRef && focusRef.key === 'spotify' ? 0.8 : Math.min(1, 2 / Math.max(2, dSp)) ** 1.3;
+    if (Math.abs(vTv - (appVol.tv ?? -1)) > 0.02) { appVol.tv = vTv; escritorioApp.volume('tv', vTv); }
+    if (Math.abs(vSp - (appVol.spotify ?? -1)) > 0.02) { appVol.spotify = vSp; escritorioApp.volume('spotify', vSp); }
+    return;
+  }
   // a caixa de som do Spotify: volume pela distância até a caixa mais próxima
   if (sp.player && sp.deviceId) {
     const d = Math.min(...speakerPos.map(p => camera.position.distanceTo(p)));
@@ -1651,7 +1710,8 @@ function updateFocus(dt) {
 }
 function focusByMesh(mesh) { const f = focusables.find(x => x.mesh === mesh); if (f) focusOn(f); return !!f; }
 
-if (EMBED) { buildEmbeds(); startYouTube(); spBoot(); }
+if (EMBED) { buildEmbeds(); if (!APP) { startYouTube(); spBoot(); } }
+if (APP && escritorioApp.onEsc) escritorioApp.onEsc(() => { if (focusRef) unfocus(); });
 
 // ================= loop =================
 function resize() {

@@ -1,3 +1,4 @@
 .claude/
+node_modules/
 grafo.json
 __pycache__/
