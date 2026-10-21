@@ -2,7 +2,15 @@
 // deixam de receber os cabeçalhos que proíbem um site de abrir dentro de outro.
 const OFFICE = 'http://127.0.0.1:8765';
 
+// Atualização sozinha: quando o escritório abre, compara os arquivos da extensão no disco com os que
+// estão rodando; se mudaram, a extensão se recarrega (não precisa ir em chrome://extensions)
+const FILES = ['manifest.json', 'background.js', 'content.js'];
+const readFiles = () => Promise.all(FILES.map(f => fetch(chrome.runtime.getURL(f), { cache: 'no-store' }).then(r => r.text()))).then(t => t.join('\n'));
+const running = readFiles();
+const checkUpdate = () => Promise.all([running, readFiles()]).then(([a, b]) => { if (a !== b) chrome.runtime.reload(); }).catch(() => {});
+
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+  if (msg === 'escritorio-aberto') checkUpdate();
   if (msg !== 'escritorio-aberto' || !sender.tab || !sender.url || !sender.url.startsWith(OFFICE + '/')) return;
   const tabId = sender.tab.id, id = 1000 + (tabId % 100000);
   // regra principal sozinha: se a do YouTube falhar, as telas continuam funcionando
