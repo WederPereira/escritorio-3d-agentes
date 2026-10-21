@@ -5,6 +5,7 @@ const OFFICE = 'http://127.0.0.1:8765';
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg !== 'escritorio-aberto' || !sender.tab || !sender.url || !sender.url.startsWith(OFFICE + '/')) return;
   const tabId = sender.tab.id, id = 1000 + (tabId % 100000);
+  // regra principal sozinha: se a do YouTube falhar, as telas continuam funcionando
   chrome.declarativeNetRequest.updateSessionRules({
     removeRuleIds: [id, id + 500000],
     addRules: [{
@@ -14,13 +15,18 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
         { header: 'content-security-policy', operation: 'remove' },
       ] },
       condition: { tabIds: [tabId], resourceTypes: ['sub_frame'] },
-    }, {
-      // página de assistir do YouTube aberta numa tela vira o player do YouTube (que aceita abrir aqui e tem tela cheia)
-      id: id + 500000, priority: 2,
-      action: { type: 'redirect', redirect: { regexSubstitution: OFFICE + '/yt.html?v=\\2' } },
-      condition: { tabIds: [tabId], resourceTypes: ['sub_frame'], regexFilter: '^https://(www\\.|m\\.)?youtube\\.com/watch\\?(?:.*&)?v=([\\w-]{11}).*' },
     }],
-  }).then(() => reply(true), () => reply(false));
+  }).then(() => {
+    reply(true);
+    // página de assistir do YouTube aberta numa tela vai para o player do escritório (yt.html)
+    chrome.declarativeNetRequest.updateSessionRules({
+      addRules: [{
+        id: id + 500000, priority: 2,
+        action: { type: 'redirect', redirect: { regexSubstitution: OFFICE + '/yt.html?v=\\1' } },
+        condition: { tabIds: [tabId], resourceTypes: ['sub_frame'], regexFilter: '^https://www\\.youtube\\.com/watch\\?v=([A-Za-z0-9_-]{11})' },
+      }],
+    }).catch(e => console.warn('regra do YouTube:', e && e.message));
+  }, e => { console.warn('regra das telas:', e && e.message); reply(false); });
   return true;
 });
 
