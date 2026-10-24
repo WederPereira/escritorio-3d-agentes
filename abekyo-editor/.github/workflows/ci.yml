@@ -1,0 +1,72 @@
+name: CI
+
+# What runs:
+#   - typecheck (tsc --noEmit)
+#   - tests     (Vitest, 108 cases)
+#   - i18n      (messages/*.json key parity)
+#   - build     (next build)
+#   - lint      (eslint)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel earlier runs on the same ref when a new commit lands. Saves CI minutes
+# on rapid pushes / force-pushes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: typecheck / test / i18n / build / lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # README declares Node 20+ as the supported range; CI runs the
+          # latest LTS so the lockfile (generated with the matching npm 11)
+          # round-trips cleanly through `npm ci`.
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # All checks below use `if: always()` so a single failure does not mask
+      # the others. Each step's pass/fail is visible in the GitHub Actions UI.
+
+      - name: Type check (tsc --noEmit)
+        if: always()
+        run: npx tsc --noEmit
+
+      - name: Unit tests (Vitest)
+        if: always()
+        run: npm test
+
+      - name: i18n key parity
+        if: always()
+        run: npm run i18n:check
+
+      - name: Production build
+        if: always()
+        run: npm run build
+
+      # A ratchet, not a target. `npm run lint` on its own always exits 0 while
+      # warnings accumulate, so the step was green with 127 findings — including
+      # real React Compiler bugs. The ceiling only ever moves down: lower it
+      # whenever you clear warnings, and never raise it to make CI pass.
+      - name: Lint
+        if: always()
+        run: npm run lint -- --max-warnings 94

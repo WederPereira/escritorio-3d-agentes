@@ -1,0 +1,1536 @@
+{
+  "id": "escPainel0000001",
+  "name": "Escritório · Painel comercial",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "escritorio/comercial",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "79afad6b-96c9-4e4b-a946-2ec8081606d2",
+      "name": "Painel pede os dados",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "1a43e249-c096-407f-9803-2217178b5059"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== configuração (o instalador preenche) =====\nconst EVOLUTION_URL = '';\nconst EVOLUTION_KEY = '';\nconst INSTANCIA = 'cantinho-comercial';\nconst CODIGO_ENVIO = '';\n// =================================================\n\nreturn [{ json: { evolutionOk: !!(EVOLUTION_URL && EVOLUTION_KEY), chats: `${EVOLUTION_URL}/chat/findChats/${INSTANCIA}`, estado: `${EVOLUTION_URL}/instance/connectionState/${INSTANCIA}`, key: EVOLUTION_KEY } }];\n"
+      },
+      "id": "0b4af360-0f3b-4330-bd7a-d9c9fdb48ee4",
+      "name": "Preparar o painel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "escritorio_config",
+        "columns": {
+          "column": [
+            {
+              "name": "chave",
+              "type": "string"
+            },
+            {
+              "name": "valor",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "277b71af-5a61-4662-94f6-a08c104a688d",
+      "name": "Garantir a configuração",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_config"
+        },
+        "operation": "get",
+        "returnAll": true
+      },
+      "id": "e2d83ec8-0b08-4201-80f0-4e1646abafd3",
+      "name": "Ler a configuração",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "escritorio_registro",
+        "columns": {
+          "column": [
+            {
+              "name": "agente",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "tarefa",
+              "type": "string"
+            },
+            {
+              "name": "resultado",
+              "type": "string"
+            },
+            {
+              "name": "de",
+              "type": "string"
+            },
+            {
+              "name": "texto",
+              "type": "string"
+            },
+            {
+              "name": "evento",
+              "type": "string"
+            },
+            {
+              "name": "card",
+              "type": "string"
+            },
+            {
+              "name": "coluna",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "1f579ec8-356d-46da-b9a1-0dd556cc2216",
+      "name": "Garantir o registro",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_registro"
+        },
+        "operation": "get",
+        "limit": 40,
+        "orderBy": true,
+        "orderByColumn": "createdAt",
+        "orderByDirection": "DESC",
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "agente",
+              "condition": "eq",
+              "keyValue": "telegram"
+            }
+          ]
+        }
+      },
+      "id": "daea5f62-7d59-4ae8-8218-0e4d42ed413f",
+      "name": "Envios recentes",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        0
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Preparar o painel').first().json.chats }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({}) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Preparar o painel').first().json.key }}"
+            }
+          ]
+        }
+      },
+      "id": "9c6d3b42-47a8-4587-94db-1866d0f11ebb",
+      "name": "Conversas da Evolution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Preparar o painel').first().json.estado }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Preparar o painel').first().json.key }}"
+            }
+          ]
+        }
+      },
+      "id": "7ff549c6-02e9-4df3-be64-dbf5206c1592",
+      "name": "Estado do WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = {};\n$('Ler a configuração').all().map(i => i.json).filter(r => r && r.chave).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt) || a.id - b.id)\n  .forEach(r => { cfg[r.chave] = r.valor || ''; });\n\nconst P = $('Preparar o painel').first().json;\nconst r = $('Conversas da Evolution').first().json || {};\nconst lista = Array.isArray(r.body) ? r.body : Array.isArray(r.body && r.body.chats) ? r.body.chats : [];\nconst estadoZap = String(((($('Estado do WhatsApp').first().json || {}).body || {}).instance || {}).state || '');\nconst envios = $('Envios recentes').all().map(i => i.json).filter(x => x && x.agente === 'telegram')\n  .map(x => ({ para: x.de, texto: x.texto, t: x.createdAt, status: x.status || 'enviado' }));\nconst textoDe = m => { m = m || {}; return m.conversation || (m.extendedTextMessage || {}).text || (m.imageMessage || {}).caption || (m.videoMessage || {}).caption\n  || (m.audioMessage ? '[áudio]' : m.imageMessage ? '[imagem]' : m.documentMessage ? '[documento]' : m.stickerMessage ? '[figurinha]' : ''); };\nconst CRITICO = /reembols|cancel|reclama|machuc|doente|ferid|sangr|vomit|absurd|p[eé]ssim|procon|devolu|estorno|insatisf/i;\nconst agora = Date.now() / 1000;\nconst regua = { D0: [], R1: [], R2: [], R3: [], R4: [], R5: [] }, esperando = [], criticos = [];\nfor (const c of lista) {\n  const jid = String(c.remoteJid || c.id || '');\n  if (!jid || /@g\\.us|@broadcast|@newsletter/.test(jid)) continue;\n  const lm = c.lastMessage || null;\n  const ts = Number(lm && lm.messageTimestamp) || (Date.parse(c.updatedAt) / 1000) || 0;\n  if (!ts) continue;\n  const dias = (agora - ts) / 86400;\n  if (dias > 30) continue;\n  const lead = { nome: c.pushName || (lm && lm.pushName) || jid.split('@')[0], numero: jid.endsWith('@s.whatsapp.net') ? jid.split('@')[0] : jid,\n                 ultimo: textoDe(lm && lm.message).replace(/\\s+/g, ' ').slice(0, 140), dias: Math.floor(dias), horas: Math.floor(dias * 24), t: new Date(ts * 1000).toISOString() };\n  if (lm && lm.key && lm.key.fromMe) {\n    // a régua conta desde a nossa mensagem que ficou sem resposta; se o lead responde, ele sai da régua\n    const etapa = dias >= 14 ? 'R5' : dias >= 7 ? 'R4' : dias >= 4 ? 'R3' : dias >= 2 ? 'R2' : dias >= 1 ? 'R1' : 'D0';\n    regua[etapa].push(Object.assign({ etapa }, lead));\n  } else if (lm && lm.key && lm.key.fromMe === false) {\n    lead.critico = lead.horas >= 24 || CRITICO.test(lead.ultimo);\n    lead.motivo = CRITICO.test(lead.ultimo) ? 'assunto delicado na última mensagem' : lead.horas >= 24 ? 'sem resposta há mais de 24h' : '';\n    esperando.push(lead);\n    if (lead.critico) criticos.push(lead);\n  }\n}\nObject.values(regua).forEach(l => l.sort((a, b) => b.dias - a.dias));\nesperando.sort((a, b) => b.horas - a.horas);\n// mensagens de cada pessoa (o Wes confere e pode mudar antes de enviar)\nconst linha = l => `• ${l.nome}${/^\\d+$/.test(l.numero) ? ' (' + l.numero + ')' : ''} — ${l.horas < 24 ? l.horas + 'h' : l.dias + ' dia(s)'}${l.ultimo ? ': \"' + l.ultimo.slice(0, 80) + '\"' : ''}`;\nconst hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: '2-digit' });\nconst followups = ['R1', 'R2', 'R3', 'R4', 'R5'].filter(k => regua[k].length).map(k => `${k} (${regua[k].length}):\\n` + regua[k].slice(0, 8).map(linha).join('\\n')).join('\\n\\n');\nconst mensagens = {\n  mari: `Bom dia, Mari! Comercial de ${hoje}\\n\\n` + (esperando.length ? `Esperando resposta (${esperando.length}):\\n${esperando.slice(0, 15).map(linha).join('\\n')}` : 'Ninguém esperando resposta agora.')\n    + (followups ? `\\n\\nFollow-ups do dia pela régua:\\n${followups}` : '\\n\\nNenhum follow-up vencido hoje.')\n    + '\\n\\nLembre de confirmar as avaliações de amanhã, remarcar quem faltou e registrar tudo no CRM.',\n  gustavo: `Bom dia, Gustavo! Resumo de ${hoje}\\n\\n` + (criticos.length ? `Críticos (${criticos.length}):\\n${criticos.slice(0, 10).map(l => linha(l) + (l.motivo ? ' · ' + l.motivo : '')).join('\\n')}` : 'Nenhum caso crítico agora.')\n    + `\\n\\nNa régua: ${Object.entries(regua).map(([k, l]) => k + ' ' + l.length).join(' · ')}.\\nConfira as avaliações do dia e lance o fechamento no CRM (presença e faturamento).`,\n  rosangela: criticos.length ? `Rosângela, casos críticos no comercial (${criticos.length}):\\n${criticos.slice(0, 10).map(l => linha(l) + (l.motivo ? ' · ' + l.motivo : '')).join('\\n')}` : '',\n  wes: '',\n};\n// Wes por último: crítico ainda aberto 20h depois do aviso à Rosângela, ou WhatsApp desconectado\nconst avisoRos = envios.filter(e => e.para === 'rosangela').map(e => Date.parse(e.t)).sort((a, b) => b - a)[0] || 0;\nconst alertas = [];\nif (avisoRos && Date.now() - avisoRos > 20 * 3600000 && criticos.length) alertas.push(`${criticos.length} caso(s) crítico(s) ainda aberto(s) 20h depois do aviso à Rosângela:\\n${criticos.slice(0, 8).map(linha).join('\\n')}`);\nif (P.evolutionOk && estadoZap && estadoZap !== 'open') alertas.push(`Alerta de conexão: o WhatsApp comercial está \"${estadoZap}\" (desconectado). Abra o escritório para ler o QR code.`);\nif (alertas.length) mensagens.wes = 'Wes, atenção:\\n\\n' + alertas.join('\\n\\n');\nconst pessoas = {\"mari\": \"Mari\", \"gustavo\": \"Gustavo\", \"rosangela\": \"Rosângela\", \"wes\": \"Wes\"};\nconst telegram = { configurado: !!cfg.telegram_token, auto: cfg.auto === 'sim', pessoas: Object.fromEntries(Object.keys(pessoas).map(k => [k, { nome: pessoas[k], chat: cfg['chat_' + k] || '' }])) };\n\nreturn [{ json: { atualizado: new Date().toISOString(), whatsapp: !P.evolutionOk ? 'sem Evolution' : estadoZap || 'sem resposta', conversas: lista.length,\n  regua, esperando: esperando.slice(0, 60), criticos, mensagens, telegram, envios: envios.slice(0, 20) } }];\n"
+      },
+      "id": "00506645-f60b-4a68-963f-ebddf89a98f6",
+      "name": "Montar o painel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "46e7caf9-4985-462d-8aa8-e15951304ae5",
+      "name": "Mandar o painel",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1980,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escritorio/comercial-config",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "49513415-5d82-44f1-96a5-2dce6fd8acba",
+      "name": "Painel muda a configuração",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        400
+      ],
+      "webhookId": "b59acf1a-90bd-4ad2-9728-1c66d83b8809"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== configuração (o instalador preenche) =====\nconst EVOLUTION_URL = '';\nconst EVOLUTION_KEY = '';\nconst INSTANCIA = 'cantinho-comercial';\nconst CODIGO_ENVIO = '';\n// =================================================\n\nconst b = $json.body || {};\nconst PODE = ['telegram_token', 'chat_mari', 'chat_gustavo', 'chat_rosangela', 'chat_wes', 'auto'];\nif (!CODIGO_ENVIO || b.codigo !== CODIGO_ENVIO) return [{ json: { erro: 'pedido sem o código do escritório' } }];\nif (!PODE.includes(b.chave)) return [{ json: { erro: 'configuração desconhecida: ' + b.chave } }];\nreturn [{ json: { chave: b.chave, valor: String(b.valor == null ? '' : b.valor).trim().slice(0, 200) } }];\n"
+      },
+      "id": "e80fc52c-6cda-4a95-b5c1-2294305dbf45",
+      "name": "Conferir a configuração",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "05b78516-2a0d-46f8-9b2b-af6bdb47be8f",
+              "leftValue": "={{ $json.erro }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "01122457-308d-4e80-8c12-fc2d14629f0a",
+      "name": "Configuração ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "escritorio_config",
+        "columns": {
+          "column": [
+            {
+              "name": "chave",
+              "type": "string"
+            },
+            {
+              "name": "valor",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "e6f515cd-6311-46cb-b411-2f6c2f9b0547",
+      "name": "Garantir a configuração (mudar)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        360
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { chave: $('Conferir a configuração').first().json.chave, valor: $('Conferir a configuração').first().json.valor } }];\n"
+      },
+      "id": "dea08f9e-120f-4395-8690-f50838ed9558",
+      "name": "Linha da configuração",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_config"
+        },
+        "operation": "insert",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "2247a284-4cff-48c4-a61f-8219a42b1686",
+      "name": "Guardar a configuração",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "5f59231a-cdb4-4abd-b485-c7d34c155f5f",
+      "name": "Configuração guardada",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, erro: $json.erro }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "cb7cd443-f593-4cf5-8159-38ff35a94ad6",
+      "name": "Configuração recusada",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escritorio/telegram",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "cc02019a-1558-432e-b2a7-4a5237be069a",
+      "name": "Painel pede um envio",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        700
+      ],
+      "webhookId": "bd3e94c6-f91e-42f0-a8a0-9f2eca361106"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "escritorio_config",
+        "columns": {
+          "column": [
+            {
+              "name": "chave",
+              "type": "string"
+            },
+            {
+              "name": "valor",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "cf1ad983-d809-4d26-9c64-7536967716d6",
+      "name": "Garantir a configuração (envio)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        700
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_config"
+        },
+        "operation": "get",
+        "returnAll": true
+      },
+      "id": "6afdeecc-0895-4fdb-9d32-e7ebe9d85c18",
+      "name": "Ler a configuração (envio)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        700
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== configuração (o instalador preenche) =====\nconst EVOLUTION_URL = '';\nconst EVOLUTION_KEY = '';\nconst INSTANCIA = 'cantinho-comercial';\nconst CODIGO_ENVIO = '';\n// =================================================\n\nconst cfg = {};\n$('Ler a configuração (envio)').all().map(i => i.json).filter(r => r && r.chave).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt) || a.id - b.id)\n  .forEach(r => { cfg[r.chave] = r.valor || ''; });\n\nconst b = $('Painel pede um envio').first().json.body || {};\nconst pessoas = {\"mari\": \"Mari\", \"gustavo\": \"Gustavo\", \"rosangela\": \"Rosângela\", \"wes\": \"Wes\"};\nlet erro = '';\nif (!CODIGO_ENVIO || b.codigo !== CODIGO_ENVIO) erro = 'pedido sem o código do escritório';\nelse if (!cfg.telegram_token) erro = 'falta o token do bot do Telegram (configure no painel)';\nconst acao = b.acao === 'ids' ? 'ids' : 'enviar';\nconst para = String(b.para || ''), chat = cfg['chat_' + para] || '', texto = String(b.texto || '').trim().slice(0, 3900);\nif (!erro && acao === 'enviar') {\n  if (!pessoas[para]) erro = 'destinatário desconhecido: ' + para;\n  else if (!chat) erro = `falta o ID do Telegram de ${pessoas[para]} (configure no painel)`;\n  else if (!texto) erro = 'mensagem vazia';\n}\nconst base = 'https://api.telegram.org/bot' + cfg.telegram_token;\nreturn [{ json: { erro, acao, para, nome: pessoas[para] || para, chat, texto,\n  url: acao === 'ids' ? base + '/getUpdates?limit=100' : base + '/sendMessage', corpo: { chat_id: chat, text: texto, disable_web_page_preview: true } } }];\n"
+      },
+      "id": "ba1d89e4-c3cc-470c-b0d2-d71bf912f9e5",
+      "name": "Conferir o envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2c4611b8-4d86-4c68-9e7b-47eb52bd7601",
+              "leftValue": "={{ $json.erro }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fd35067b-bdf0-41cf-84d4-396724cb34f1",
+      "name": "Envio ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, erro: $json.erro }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "4007917a-650a-4c65-9076-bdfa5fef60c1",
+      "name": "Envio recusado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1100,
+        860
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.acao === \"ids\" ? {} : $json.corpo) }}"
+      },
+      "id": "c6faf37e-3c6a-4a8c-98dc-2e670ef16f58",
+      "name": "Chamar o Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        660
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Conferir o envio').first().json, r = $json, body = r.body || {};\nconst ok = (r.statusCode || 0) >= 200 && (r.statusCode || 0) < 300 && body.ok !== false;\nconst erro = ok ? '' : 'o Telegram recusou: ' + (body.description || r.statusCode || 'sem resposta');\nif (c.acao === 'ids') {\n  // quem já mandou mensagem para o bot aparece aqui (cada pessoa precisa mandar um \"oi\" para o bot uma vez)\n  const chats = {};\n  for (const u of (body.result || [])) { const m = u.message || u.edited_message || u.channel_post || {}; const ch = m.chat; if (ch) chats[ch.id] = [ch.first_name, ch.last_name, ch.title, ch.username && '@' + ch.username].filter(Boolean).join(' '); }\n  return [{ json: { ok, erro, ids: Object.entries(chats).map(([id, nome]) => ({ id, nome })) } }];\n}\nreturn [{ json: { ok, erro, para: c.para, nome: c.nome, texto: c.texto } }];\n"
+      },
+      "id": "bedb5673-79ec-4219-a67b-af985dc0b8c5",
+      "name": "Resposta do Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4fbdbc85-25e3-4684-a191-832357517643",
+              "leftValue": "={{ $json.ok && !$json.ids }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "78afdf7b-3dab-49ce-9068-835f831fa174",
+      "name": "Guardar no histórico?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $json; return [{ json: { agente: 'telegram', de: c.para, texto: c.texto, status: 'enviado', evento: 'Telegram para ' + c.nome } }];\n"
+      },
+      "id": "3148b326-9a09-4ddf-989f-87ba6a0e494c",
+      "name": "Linha do envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_registro"
+        },
+        "operation": "insert",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "22136dfb-eb93-46ab-82ca-a55bc4d50f04",
+      "name": "Guardar o envio",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Resposta do Telegram').first().json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "2d4acd3f-153e-4e54-b39a-d12f9c232bda",
+      "name": "Responder o envio",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2200,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "c704455c-39f8-425a-b6ed-dfd34f6acd6c",
+      "name": "Todo dia às 8h30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== configuração (o instalador preenche) =====\nconst EVOLUTION_URL = '';\nconst EVOLUTION_KEY = '';\nconst INSTANCIA = 'cantinho-comercial';\nconst CODIGO_ENVIO = '';\n// =================================================\n\nreturn [{ json: { evolutionOk: !!(EVOLUTION_URL && EVOLUTION_KEY), chats: `${EVOLUTION_URL}/chat/findChats/${INSTANCIA}`, estado: `${EVOLUTION_URL}/instance/connectionState/${INSTANCIA}`, key: EVOLUTION_KEY } }];\n"
+      },
+      "id": "a519963f-4422-4725-b9de-623043241826",
+      "name": "Preparar o painel (diário)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "escritorio_config",
+        "columns": {
+          "column": [
+            {
+              "name": "chave",
+              "type": "string"
+            },
+            {
+              "name": "valor",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "496388a9-a325-4e3b-b685-69464411097e",
+      "name": "Garantir a configuração (diário)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        1100
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_config"
+        },
+        "operation": "get",
+        "returnAll": true
+      },
+      "id": "feae8626-b798-4f19-9e49-235097fa3716",
+      "name": "Ler a configuração (diário)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        1100
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "escritorio_registro",
+        "columns": {
+          "column": [
+            {
+              "name": "agente",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "tarefa",
+              "type": "string"
+            },
+            {
+              "name": "resultado",
+              "type": "string"
+            },
+            {
+              "name": "de",
+              "type": "string"
+            },
+            {
+              "name": "texto",
+              "type": "string"
+            },
+            {
+              "name": "evento",
+              "type": "string"
+            },
+            {
+              "name": "card",
+              "type": "string"
+            },
+            {
+              "name": "coluna",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "be3f6697-456c-493a-a613-83ab6eaa30bc",
+      "name": "Garantir o registro (diário)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        1100
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_registro"
+        },
+        "operation": "get",
+        "limit": 40,
+        "orderBy": true,
+        "orderByColumn": "createdAt",
+        "orderByDirection": "DESC",
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "agente",
+              "condition": "eq",
+              "keyValue": "telegram"
+            }
+          ]
+        }
+      },
+      "id": "1026a4ea-4967-4d2c-80b9-56f0ec613a98",
+      "name": "Envios recentes (diário)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        1100
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Preparar o painel (diário)').first().json.chats }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({}) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Preparar o painel (diário)').first().json.key }}"
+            }
+          ]
+        }
+      },
+      "id": "ed77d3cb-e952-4bc2-bd19-f78e476bb02e",
+      "name": "Conversas da Evolution (diário)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        1100
+      ],
+      "onError": "continueRegularOutput",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Preparar o painel (diário)').first().json.estado }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Preparar o painel (diário)').first().json.key }}"
+            }
+          ]
+        }
+      },
+      "id": "a46ee194-8241-4339-8fea-b90ce4d3604f",
+      "name": "Estado do WhatsApp (diário)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        1100
+      ],
+      "onError": "continueRegularOutput",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = {};\n$('Ler a configuração (diário)').all().map(i => i.json).filter(r => r && r.chave).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt) || a.id - b.id)\n  .forEach(r => { cfg[r.chave] = r.valor || ''; });\n\nconst P = $('Preparar o painel (diário)').first().json;\nconst r = $('Conversas da Evolution (diário)').first().json || {};\nconst lista = Array.isArray(r.body) ? r.body : Array.isArray(r.body && r.body.chats) ? r.body.chats : [];\nconst estadoZap = String(((($('Estado do WhatsApp (diário)').first().json || {}).body || {}).instance || {}).state || '');\nconst envios = $('Envios recentes (diário)').all().map(i => i.json).filter(x => x && x.agente === 'telegram')\n  .map(x => ({ para: x.de, texto: x.texto, t: x.createdAt, status: x.status || 'enviado' }));\nconst textoDe = m => { m = m || {}; return m.conversation || (m.extendedTextMessage || {}).text || (m.imageMessage || {}).caption || (m.videoMessage || {}).caption\n  || (m.audioMessage ? '[áudio]' : m.imageMessage ? '[imagem]' : m.documentMessage ? '[documento]' : m.stickerMessage ? '[figurinha]' : ''); };\nconst CRITICO = /reembols|cancel|reclama|machuc|doente|ferid|sangr|vomit|absurd|p[eé]ssim|procon|devolu|estorno|insatisf/i;\nconst agora = Date.now() / 1000;\nconst regua = { D0: [], R1: [], R2: [], R3: [], R4: [], R5: [] }, esperando = [], criticos = [];\nfor (const c of lista) {\n  const jid = String(c.remoteJid || c.id || '');\n  if (!jid || /@g\\.us|@broadcast|@newsletter/.test(jid)) continue;\n  const lm = c.lastMessage || null;\n  const ts = Number(lm && lm.messageTimestamp) || (Date.parse(c.updatedAt) / 1000) || 0;\n  if (!ts) continue;\n  const dias = (agora - ts) / 86400;\n  if (dias > 30) continue;\n  const lead = { nome: c.pushName || (lm && lm.pushName) || jid.split('@')[0], numero: jid.endsWith('@s.whatsapp.net') ? jid.split('@')[0] : jid,\n                 ultimo: textoDe(lm && lm.message).replace(/\\s+/g, ' ').slice(0, 140), dias: Math.floor(dias), horas: Math.floor(dias * 24), t: new Date(ts * 1000).toISOString() };\n  if (lm && lm.key && lm.key.fromMe) {\n    // a régua conta desde a nossa mensagem que ficou sem resposta; se o lead responde, ele sai da régua\n    const etapa = dias >= 14 ? 'R5' : dias >= 7 ? 'R4' : dias >= 4 ? 'R3' : dias >= 2 ? 'R2' : dias >= 1 ? 'R1' : 'D0';\n    regua[etapa].push(Object.assign({ etapa }, lead));\n  } else if (lm && lm.key && lm.key.fromMe === false) {\n    lead.critico = lead.horas >= 24 || CRITICO.test(lead.ultimo);\n    lead.motivo = CRITICO.test(lead.ultimo) ? 'assunto delicado na última mensagem' : lead.horas >= 24 ? 'sem resposta há mais de 24h' : '';\n    esperando.push(lead);\n    if (lead.critico) criticos.push(lead);\n  }\n}\nObject.values(regua).forEach(l => l.sort((a, b) => b.dias - a.dias));\nesperando.sort((a, b) => b.horas - a.horas);\n// mensagens de cada pessoa (o Wes confere e pode mudar antes de enviar)\nconst linha = l => `• ${l.nome}${/^\\d+$/.test(l.numero) ? ' (' + l.numero + ')' : ''} — ${l.horas < 24 ? l.horas + 'h' : l.dias + ' dia(s)'}${l.ultimo ? ': \"' + l.ultimo.slice(0, 80) + '\"' : ''}`;\nconst hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: '2-digit' });\nconst followups = ['R1', 'R2', 'R3', 'R4', 'R5'].filter(k => regua[k].length).map(k => `${k} (${regua[k].length}):\\n` + regua[k].slice(0, 8).map(linha).join('\\n')).join('\\n\\n');\nconst mensagens = {\n  mari: `Bom dia, Mari! Comercial de ${hoje}\\n\\n` + (esperando.length ? `Esperando resposta (${esperando.length}):\\n${esperando.slice(0, 15).map(linha).join('\\n')}` : 'Ninguém esperando resposta agora.')\n    + (followups ? `\\n\\nFollow-ups do dia pela régua:\\n${followups}` : '\\n\\nNenhum follow-up vencido hoje.')\n    + '\\n\\nLembre de confirmar as avaliações de amanhã, remarcar quem faltou e registrar tudo no CRM.',\n  gustavo: `Bom dia, Gustavo! Resumo de ${hoje}\\n\\n` + (criticos.length ? `Críticos (${criticos.length}):\\n${criticos.slice(0, 10).map(l => linha(l) + (l.motivo ? ' · ' + l.motivo : '')).join('\\n')}` : 'Nenhum caso crítico agora.')\n    + `\\n\\nNa régua: ${Object.entries(regua).map(([k, l]) => k + ' ' + l.length).join(' · ')}.\\nConfira as avaliações do dia e lance o fechamento no CRM (presença e faturamento).`,\n  rosangela: criticos.length ? `Rosângela, casos críticos no comercial (${criticos.length}):\\n${criticos.slice(0, 10).map(l => linha(l) + (l.motivo ? ' · ' + l.motivo : '')).join('\\n')}` : '',\n  wes: '',\n};\n// Wes por último: crítico ainda aberto 20h depois do aviso à Rosângela, ou WhatsApp desconectado\nconst avisoRos = envios.filter(e => e.para === 'rosangela').map(e => Date.parse(e.t)).sort((a, b) => b - a)[0] || 0;\nconst alertas = [];\nif (avisoRos && Date.now() - avisoRos > 20 * 3600000 && criticos.length) alertas.push(`${criticos.length} caso(s) crítico(s) ainda aberto(s) 20h depois do aviso à Rosângela:\\n${criticos.slice(0, 8).map(linha).join('\\n')}`);\nif (P.evolutionOk && estadoZap && estadoZap !== 'open') alertas.push(`Alerta de conexão: o WhatsApp comercial está \"${estadoZap}\" (desconectado). Abra o escritório para ler o QR code.`);\nif (alertas.length) mensagens.wes = 'Wes, atenção:\\n\\n' + alertas.join('\\n\\n');\nconst pessoas = {\"mari\": \"Mari\", \"gustavo\": \"Gustavo\", \"rosangela\": \"Rosângela\", \"wes\": \"Wes\"};\nconst telegram = { configurado: !!cfg.telegram_token, auto: cfg.auto === 'sim', pessoas: Object.fromEntries(Object.keys(pessoas).map(k => [k, { nome: pessoas[k], chat: cfg['chat_' + k] || '' }])) };\n\nif (!telegram.auto || !cfg.telegram_token) return [];\nconst base = 'https://api.telegram.org/bot' + cfg.telegram_token + '/sendMessage';\nreturn Object.keys(pessoas).filter(k => mensagens[k] && telegram.pessoas[k].chat)\n  .map(k => ({ json: { url: base, para: k, nome: pessoas[k], texto: mensagens[k], corpo: { chat_id: telegram.pessoas[k].chat, text: mensagens[k].slice(0, 3900), disable_web_page_preview: true } } }));\n"
+      },
+      "id": "4403de19-d9f5-4506-b8b8-637dce1e3759",
+      "name": "Quem recebe hoje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.corpo) }}"
+      },
+      "id": "386a5602-f1a1-4701-b85d-7f285bfe0fca",
+      "name": "Enviar o diário",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        1100
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pedidos = $('Quem recebe hoje').all();\nreturn $input.all().map((it, i) => { const p = pedidos[i].json, ok = (it.json.statusCode || 0) < 300 && (it.json.body || {}).ok !== false;\n  return { json: { agente: 'telegram', de: p.para, texto: p.texto, status: ok ? 'enviado (diário)' : 'falhou', evento: 'Telegram diário para ' + p.nome } }; });\n"
+      },
+      "id": "a95c7b9b-3224-4758-9bb2-857cabbff2cb",
+      "name": "Linhas do diário",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_registro"
+        },
+        "operation": "insert",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "d0acbb2d-49ed-4f4b-98e9-ea0a21b03bb2",
+      "name": "Guardar o diário",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2420,
+        1100
+      ]
+    }
+  ],
+  "connections": {
+    "Painel pede os dados": {
+      "main": [
+        [
+          {
+            "node": "Preparar o painel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar o painel": {
+      "main": [
+        [
+          {
+            "node": "Garantir a configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir a configuração": {
+      "main": [
+        [
+          {
+            "node": "Ler a configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler a configuração": {
+      "main": [
+        [
+          {
+            "node": "Garantir o registro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir o registro": {
+      "main": [
+        [
+          {
+            "node": "Envios recentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envios recentes": {
+      "main": [
+        [
+          {
+            "node": "Conversas da Evolution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversas da Evolution": {
+      "main": [
+        [
+          {
+            "node": "Estado do WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estado do WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Montar o painel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar o painel": {
+      "main": [
+        [
+          {
+            "node": "Mandar o painel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Painel muda a configuração": {
+      "main": [
+        [
+          {
+            "node": "Conferir a configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conferir a configuração": {
+      "main": [
+        [
+          {
+            "node": "Configuração ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuração ok?": {
+      "main": [
+        [
+          {
+            "node": "Garantir a configuração (mudar)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Configuração recusada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir a configuração (mudar)": {
+      "main": [
+        [
+          {
+            "node": "Linha da configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linha da configuração": {
+      "main": [
+        [
+          {
+            "node": "Guardar a configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar a configuração": {
+      "main": [
+        [
+          {
+            "node": "Configuração guardada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Painel pede um envio": {
+      "main": [
+        [
+          {
+            "node": "Garantir a configuração (envio)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir a configuração (envio)": {
+      "main": [
+        [
+          {
+            "node": "Ler a configuração (envio)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler a configuração (envio)": {
+      "main": [
+        [
+          {
+            "node": "Conferir o envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conferir o envio": {
+      "main": [
+        [
+          {
+            "node": "Envio ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envio ok?": {
+      "main": [
+        [
+          {
+            "node": "Chamar o Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Envio recusado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chamar o Telegram": {
+      "main": [
+        [
+          {
+            "node": "Resposta do Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta do Telegram": {
+      "main": [
+        [
+          {
+            "node": "Guardar no histórico?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar no histórico?": {
+      "main": [
+        [
+          {
+            "node": "Linha do envio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder o envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linha do envio": {
+      "main": [
+        [
+          {
+            "node": "Guardar o envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar o envio": {
+      "main": [
+        [
+          {
+            "node": "Responder o envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Todo dia às 8h30": {
+      "main": [
+        [
+          {
+            "node": "Preparar o painel (diário)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar o painel (diário)": {
+      "main": [
+        [
+          {
+            "node": "Garantir a configuração (diário)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir a configuração (diário)": {
+      "main": [
+        [
+          {
+            "node": "Ler a configuração (diário)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler a configuração (diário)": {
+      "main": [
+        [
+          {
+            "node": "Garantir o registro (diário)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir o registro (diário)": {
+      "main": [
+        [
+          {
+            "node": "Envios recentes (diário)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envios recentes (diário)": {
+      "main": [
+        [
+          {
+            "node": "Conversas da Evolution (diário)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversas da Evolution (diário)": {
+      "main": [
+        [
+          {
+            "node": "Estado do WhatsApp (diário)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estado do WhatsApp (diário)": {
+      "main": [
+        [
+          {
+            "node": "Quem recebe hoje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quem recebe hoje": {
+      "main": [
+        [
+          {
+            "node": "Enviar o diário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar o diário": {
+      "main": [
+        [
+          {
+            "node": "Linhas do diário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linhas do diário": {
+      "main": [
+        [
+          {
+            "node": "Guardar o diário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "executionTimeout": 900
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

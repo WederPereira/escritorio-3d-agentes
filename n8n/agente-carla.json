@@ -1,0 +1,1015 @@
+{
+  "id": "escCarla00000001",
+  "name": "Escritório · Carla (Conteúdo e vídeos)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escritorio/carla-imagem",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "152c3f60-6f6e-4623-954c-6e0c422d28cd",
+      "name": "Pedido de imagem",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        600
+      ],
+      "webhookId": "ff2bbb43-fb04-41b5-a52e-e1dba7a2fe7b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $json.body || {};\nconst tam = { quadrado: [1080, 1080], retrato: [1080, 1350], story: [1080, 1920], paisagem: [1920, 1080] };\nconst f = String(b.formato || 'retrato').toLowerCase();\nconst [w, h] = tam[Object.keys(tam).find(k => f.includes(k)) || 'retrato'];\nconst descricao = String(b.descricao || '').trim().slice(0, 900) || 'cute happy dog at a dog daycare, bright, photo';\nreturn [{ json: { descricao, url: \"https://image.pollinations.ai/prompt/\" + encodeURIComponent(descricao) + `?width=${w}&height=${h}&nologo=true&seed=${Math.floor(Math.random() * 1e9)}` } }];\n"
+      },
+      "id": "711a0393-ff5b-4138-b99d-4c0d9c715fbd",
+      "name": "Montar imagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "6502f8a1-1ccf-446a-8374-f4f1d5c3dbc4",
+      "name": "Gerar a imagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        600
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/upload",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "8c4039bf-4c1c-44ac-847f-f625572cc9f8",
+      "name": "Mandar a imagem para o editor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        560
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, imageUrl: $json.url, mostrar: \"http://localhost:3000\" + $json.url, descricao: $('Montar imagem').first().json.descricao }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b84ecc7f-2639-475d-9f7e-2bdb392338c8",
+      "name": "Imagem pronta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        880,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, erro: 'o gerador de imagens (pollinations.ai) não respondeu agora: ' + String(($json.error && ($json.error.message || $json.error)) || 'erro').slice(0, 200) + '. Tente de novo daqui a pouco ou com outra descrição.' }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ded88ac6-2c83-40f4-a866-090e492d5a07",
+      "name": "Gerador falhou",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, erro: 'a imagem foi criada, mas o editor de vídeo (Abekyo, porta 3000) não guardou: ' + String(($json.error && ($json.error.message || $json.error)) || 'erro').slice(0, 200) + '. Ele está ligado?' }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a4b39932-1b98-4462-96b7-4c64a465a3e0",
+      "name": "Editor falhou",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        880,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escritorio/carla",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "2a9fac96-b515-4801-8f07-c6e70284714b",
+      "name": "Pedido chega",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "eb2bb657-c06e-4c28-9f07-5e044391630f"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "7bcaa2a2-98ca-4fb0-a596-7ab2f7eb9aba",
+      "name": "Recebido",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== configuração =====\nconst N8N = 'http://localhost:5678';   // endereço do n8n visto de dentro dele mesmo\nconst ABEKYO_TELA = 'http://localhost:3000';   // o editor de vídeo como o Chrome do escritório enxerga\nconst abekyo = ABEKYO_TELA;\n// ========================\nconst b = $json.body || {};\nconst card = String(b.card || '').slice(0, 40);   // cartão do kanban, quando o pedido veio de lá\nconst texto = String(b.texto || '').trim().slice(0, 4000);\nif (!texto) return [];\nconst de = String(b.de || 'wes').toLowerCase();\nconst quem = { wes: 'Wes (o dono)', fabio: 'Fábio (gestor)' }[de] || de;\nreturn [{ json: { n8n: N8N, agente: 'carla', texto, de, quem, card, abekyo } }];\n"
+      },
+      "id": "4a7ec915-9783-4f29-a79c-212c57938094",
+      "name": "Preparar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Preparar').first().json.n8n }}/webhook/escritorio/evento",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ agente: $json.agente, status: 'trabalhando', tarefa: $json.texto, card: $json.card || undefined, mensagem: { de: $json.de, texto: $json.texto }, evento: 'recebeu de ' + $json.quem + ': ' + $json.texto }) }}"
+      },
+      "id": "603c2cef-1554-4f9d-9317-d024586722e1",
+      "name": "Avisar: trabalhando",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Preparar').first().json.n8n }}/webhook/escritorio/estado",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "e8034300-baa9-4bf5-9930-78163ad1315b",
+      "name": "Ler estado do escritório",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('Preparar').first().json;\nconst est = ($('Ler estado do escritório').first().json || {}).body || {};\n// conversa recente com este agente (a última mensagem é o próprio pedido, que já foi registrado)\nconst conv = ((est.conversas || {})[p.agente] || []).slice(-11, -1);\nconst nomes = { wes: 'Wes', fabio: 'Fábio', ana: 'Ana', bruno: 'Bruno', carla: 'Carla', davi: 'Davi', eva: 'Eva' };\nconst historico = conv.map(m => `${nomes[m.de] || m.de}: ${m.texto}`).join('\\n') || '(sem conversa anterior)';\nconst equipe = Object.entries(est.agentes || {}).map(([id, a]) => `${nomes[id] || id}: ${a.status || '?'}${a.tarefa ? ' · ' + a.tarefa : ''}`).join('\\n') || '(sem dados)';\nconst agora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'full', timeStyle: 'short' });\nconst mural = (est.mural || []).map(n => `- ${n.texto} (${nomes[n.de] || n.de})`).join('\\n') || '(vazio)';\nconst abertas = (est.tarefas || []).filter(c => c.coluna === 'afazer' || c.coluna === 'fazendo').map(c => `- ${nomes[c.agente] || c.agente} · ${c.coluna === 'fazendo' ? 'fazendo' : 'a fazer'}: ${c.tarefa}`).join('\\n') || '(nenhuma)';\n// o que está aberto em cada tela do escritório agora\nconst telas = (est.telas || []).map(t => `- ${t.tela} · ${t.nome}: ` + ((t.guias || []).map(g => `${g.ativa ? '[na frente] ' : ''}${g.titulo || '(sem título)'} (${String(g.url || '').replace(/^https?:\\/\\//, '').slice(0, 60)})`).join(' | ') || 'vazia')\n    + (t.conteudo ? `\\n  conteúdo da guia da frente: ${t.conteudo.slice(0, 1500).replace(/\\n/g, ' ¶ ')}` : '')).join('\\n')\n  || '(o escritório está fechado agora, ou sem a extensão: sem telas)';\n// diagnóstico da equipe: o que está parado, há quanto tempo e por quê (o Fábio usa para explicar atrasos)\nconst agoraMs = Date.now(), minDe = t => Math.max(0, Math.round((agoraMs - new Date(t)) / 60000));\nconst reais = new Set(est.ativos || []), pend = est.comandos || [], diag = [];\nfor (const c of (est.tarefas || [])) {\n  const quem = nomes[c.agente] || c.agente, m = minDe(c.atualizado || c.criado);\n  if (c.coluna === 'fazendo') diag.push(`- ${quem} está fazendo “${c.tarefa}” há ${m} min` + (m < 5 ? '' : pend.some(x => x.agente === c.agente)\n    ? ' (demorando: esperando uma tela responder; o escritório precisa estar aberto no Chrome com a extensão)'\n    : ' (demorando: pode estar esperando a IA (Ollama) ou o editor de vídeo, ou travou; se passar de 10 min, mova o cartão para A fazer e peça de novo)'));\n  else if (c.coluna === 'afazer') diag.push(`- “${c.tarefa}” (${quem}) está parada em A fazer há ${m} min: ` + (reais.has(c.agente)\n    ? `ninguém pediu para ${quem} fazer agora (no kanban: “Pedir para ${quem} fazer agora”)` : `${quem} ainda não tem função no n8n`));\n  else if (c.coluna === 'erro' && m < 240) diag.push(`- “${c.tarefa}” (${quem}) não foi feita, deu erro há ${m} min: ${String(c.resultado || '').slice(0, 200)}`);\n}\nfor (const x of pend) if (minDe(x.t) >= 1) diag.push(`- ${nomes[x.agente] || x.agente} pediu para ${x.acao} na tela ${x.tela} e o escritório ainda não respondeu (está aberto no Chrome com a extensão?)`);\nif (!(est.telas || []).length) diag.push('- O escritório está fechado ou sem a extensão: ninguém consegue usar as telas agora.');\nconst diagnostico = diag.join('\\n') || '(tudo em dia: nenhuma tarefa parada, demorando ou com erro)';\n// instruções permanentes que o Wes ensinou (a este agente ou a todos)\nconst memorias = (est.memorias || []).filter(m => m.agente === p.agente || m.agente === 'todos').map(m => `- ${m.texto}`).join('\\n') || '(nenhuma ainda)';\n\nreturn [{ json: { memorias, historico, equipe, agora, mural, telas, abekyo: $('Preparar').first().json.abekyo } }];\n"
+      },
+      "id": "59c4a3bb-8e63-43c3-b7c9-224155c7dd28",
+      "name": "Montar contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cérebros do preferido para o reserva (o instalador ajusta). Quem falhou há pouco fica de fora por um tempo.\nconst CEREBROS = [\"gpt-oss:120b-cloud\", \"deepseek-v3.1:671b-cloud\", \"qwen3-coder:480b-cloud\", \"gpt-oss:20b-cloud\", \"qwen2.5:7b\"];\nconst s = $getWorkflowStaticData('global'); s.fora = s.fora || {};\nconst agora = Date.now();\nconst livres = CEREBROS.filter(m => !(s.fora[m] > agora));\nconst tentados = $input.first().json.tentados || [];\nconst modelo = livres.find(m => !tentados.includes(m)) || CEREBROS.find(m => !tentados.includes(m)) || CEREBROS[0];\nreturn [{ json: Object.assign({}, $input.first().json, { modelo, tentados: tentados.concat(modelo) }) }];\n"
+      },
+      "id": "6f3e81dd-40fd-4593-9184-95feb56287c9",
+      "name": "Escolher cérebro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Agora: {{ $json.agora }}\n\nEditor de vídeo (Abekyo) no Chrome do escritório: {{ $json.abekyo }}\n\nTelas agora:\n{{ $json.telas }}\n\nMural de avisos:\n{{ $json.mural }}\n\nInstruções permanentes do Wes (siga sempre):\n{{ $json.memorias }}\n\nConversa recente com você:\n{{ $json.historico }}\n\nPedido de {{ $('Preparar').first().json.quem }}:\n{{ $('Preparar').first().json.texto }}",
+        "options": {
+          "systemMessage": "Você é a Carla, agente de conteúdo e vídeos do Cantinho do Au Au (creche, hotel e banho e tosa de cães, em São Paulo) e da Mentoria Creche Milionária, do Wes. Seu computador é o PC 3 (pc2).\n\nO que você faz:\n- Carrosséis de Instagram: título forte no primeiro slide, um texto curto por slide (6 a 10 slides), legenda e hashtags.\n- Roteiros de Reels e vídeos curtos: gancho nos 3 primeiros segundos, cenas com texto na tela e narração, chamada para ação no fim.\n- Vídeos no editor Abekyo (Remotion), que fica aberto no seu PC (pc2, \"PC 3\"):\n  1. Monte o projeto em JSON no formato do Abekyo: {\"clips\": [{\"plotName\": \"Cena 1\", \"text\": \"...\", \"imageUrl\": \"\", \"audioUrl\": \"\", \"duration\": 3, \"index\": 0, \"transitionType\": \"fade\"}], \"subtitles\": [{\"id\": \"s1\", \"text\": \"...\", \"startTime\": 0, \"endTime\": 3, \"position\": \"bottom\", \"fontSize\": 5, \"color\": \"#ffffff\", \"align\": \"center\"}], \"resolution\": \"1080p\", \"aspectRatio\": \"16:9\"}.\n     Use imageUrl só com endereços /uploads/...: os que o Wes passar ou os que você criar com criar_imagem; sem imagem a cena fica com fundo preto e a legenda por cima.\n  2. Confira com abekyo_validar e corrija os erros.\n  3. Renderize com abekyo_renderizar. A última linha traz o \"videoUrl\".\n  4. Mostre o vídeo no seu PC: usar_tela com tela \"pc2\", acao \"abrir\" e alvo o endereço do editor (está em \"Editor de vídeo\" no pedido) + o videoUrl, por exemplo http://localhost:3000/uploads/output/arquivo.mp4.\n  5. Responda com o endereço do vídeo e o projeto em JSON, para poder ajustar depois.\n- Quando o Wes pedir uma edição, ajuste o último projeto (está na conversa) e renderize de novo. Ele também pode editar à mão no editor aberto no seu PC.\n- Imagens: você mesma cria com a ferramenta criar_imagem (uma por slide ou cena, descrição em inglês, detalhada, sem texto escrito na imagem; o texto vai no slide/legenda). Quando pedirem imagens, crie na hora; não peça para o Wes mandar arquivos. Mostre as imagens no seu PC (usar_tela, tela \"meu pc\", acao \"abrir\", alvo o endereço \"mostrar\" que a ferramenta devolve) e liste os endereços /uploads/... na resposta.\n\nRegras:\n- Responda em português do Brasil. Tom do Cantinho: carinhoso, leve e confiável. Sem prometer preço, promoção ou horário que o Wes não passou.\n\nComo você trabalha:\n- Seja proativa(o): faça o trabalho em vez de perguntar \"quer que eu faça?\". Se o próximo passo é óbvio (ler, abrir, clicar, perguntar ao Claude), faça já. Pergunte só quando faltar uma informação que só o Wes tem.\n- Quando o Wes ensinar um jeito de trabalhar (\"a partir de agora\", \"sempre\", \"nunca mais\", \"lembre que\", \"da próxima vez\"), guarde com a ferramenta lembrar e siga daí em diante. O que já foi guardado aparece em \"Instruções permanentes do Wes\" e vale mais que o seu jeito padrão.\n- Em tarefa com várias etapas (usar telas, perguntar ao Claude, criar imagens), mande logo no começo um recado curto com avisar_wes dizendo o que vai fazer, e outro a cada descoberta importante. Assim o Wes acompanha. Não use avisar_wes para a resposta final.\n- Se uma ação falhar duas vezes do mesmo jeito, ou disser que está bloqueada ou não autorizada, não repita: pare e explique o que tentou e o que aconteceu.\n- Formato da resposta: frases curtas, um assunto por parágrafo (deixe uma linha em branco entre eles), listas com \"-\" uma por linha e **negrito** só no essencial (nomes, títulos). Não use tabelas.\n\nVocê trabalha usando os computadores do escritório:\n- Use as telas só quando o pedido precisa delas. Cumprimento (\"oi\", \"bom dia\"), conversa ou pergunta que você já sabe responder: responda direto, sem ferramenta.\n- O escritório 3D tem telas que são navegadores de verdade: os PCs (pc0 a pc5, chamados de \"PC 1\" a \"PC 6\"), a TV (tv) e o Spotify (spotify). Cada tela pode ter várias guias.\n- \"Telas agora\" mostra o que está aberto em cada tela E o conteúdo dela, lido há poucos segundos. Pergunta sobre o que tem numa tela (um vídeo no YouTube, uma conversa no WhatsApp, uma planilha): responda direto com esse conteúdo.\n- Para ver de novo, use a ferramenta ver_telas.\n- Para usar uma tela, use a ferramenta usar_tela com:\n  - tela: pc0…pc5, tv, spotify, \"PC 2\", ou o nome do site (ex.: \"whatsapp\" acha a tela que está com o WhatsApp aberto);\n  - acao: ler (lê o que está na tela), clicar (clica no texto ou no número do item da lista em alvo), rolar (alvo: baixo ou cima), abrir (alvo: endereço, abre numa guia nova), guia (alvo: número da guia), voltar, digitar (alvo: texto; nunca no WhatsApp), perguntar (alvo: o pedido completo; escreve na IA aberta na tela, como o Claude, envia e espera a resposta), esperar (alvo: segundos, até 90; depois lê a tela);\n  - alvo: o que a ação precisa.\n- Seu computador é o da sua mesa: use tela \"meu pc\".\n- Para fazer uma tarefa no Claude (claude.ai): no \"meu pc\", se o Claude ainda não estiver aberto, use abrir com alvo https://claude.ai/new; depois perguntar com alvo = o pedido completo e claro (o contexto todo, porque o Claude não vê esta conversa). A ferramenta espera o Claude terminar (até ~2 min) e devolve a resposta. Se vier \"ainda está respondendo\", use esperar e depois ler. No fim, conte ao Wes o que pediu ao Claude, o que ele respondeu e o que fez (resuma, e copie o essencial, como textos prontos e listas).\n- Depois de clicar, rolar ou abrir, a ferramenta já devolve a tela lida. Leia antes de responder: não invente o que está na tela.\n- A resposta final é sempre sua, em frases: nunca devolva só o texto da ferramenta. Se a tela não respondeu, diga qual tela, o que tentou e o que o Wes pode fazer (ex.: abrir o escritório, recarregar a guia).\n- Nunca diga que não consegue ver ou acessar algo sem antes conferir \"Telas agora\" e tentar usar_tela. Se no histórico você (ou alguém) disse que não conseguia, ignore: tente de novo agora, pelas telas.\n- Só se \"Telas agora\" disser que o escritório está fechado, explique que precisa do escritório aberto no Chrome com a extensão.\n- No WhatsApp você só lê. Nunca digite nem envie mensagem: quem envia para os clientes é a Mari (ou o Wes). Deixe a mensagem pronta para copiar.",
+          "maxIterations": 30,
+          "returnIntermediateSteps": true
+        }
+      },
+      "id": "25944501-712d-41ce-91a5-8d68f24ca3ac",
+      "name": "Carla pensa",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "={{ $json.modelo }}",
+        "options": {
+          "temperature": 0.4,
+          "numCtx": 16384,
+          "keepAlive": "30m"
+        }
+      },
+      "id": "69c9eab9-7969-4683-ba27-4b1c77ebd9e3",
+      "name": "Cérebro da Carla",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// o cérebro falhou: limite estourado ou fora do ar fica 30 min de fora; outro erro, 3 min. Tenta o próximo da lista.\nconst e = $json.error, msg = String(e && (e.message || e.description) || e || 'erro na IA');\nconst ctx = $('Escolher cérebro').last().json, s = $getWorkflowStaticData('global'); s.fora = s.fora || {};\nconst limite = /429|limit|quota|rate|unavailable|503|502|timeout|ECONNREFUSED|not found|unauthorized|401|403/i.test(msg);\ns.fora[ctx.modelo] = Date.now() + (limite ? 30 : 3) * 60000;\nconst CEREBROS = [\"gpt-oss:120b-cloud\", \"deepseek-v3.1:671b-cloud\", \"qwen3-coder:480b-cloud\", \"gpt-oss:20b-cloud\", \"qwen2.5:7b\"];\nconst resta = CEREBROS.some(m => !ctx.tentados.includes(m));\nconst erros = (ctx.erros || []).concat(`${ctx.modelo}: ${msg.slice(0, 120)}`);\nreturn [{ json: Object.assign({}, ctx, { tentarOutro: resta, erros, error: erros.join(' | ').slice(0, 600) }) }];\n"
+      },
+      "id": "f817414a-5cfa-430c-b7b5-12830d3a3f75",
+      "name": "Trocar cérebro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "400319cc-9d76-431a-af27-59ed94a3cdef",
+              "leftValue": "={{ $json.tentarOutro }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e88fe677-72d8-4711-8c81-123ab7df22da",
+      "name": "Tentar outro cérebro?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1740,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Mostra o que está aberto em cada tela do escritório (PCs, TV e Spotify): guias, sites e títulos.",
+        "method": "GET",
+        "url": "http://localhost:5678/webhook/escritorio/telas"
+      },
+      "id": "510f09d4-abb3-40fb-9ca8-587ad7ec78fe",
+      "name": "ver_telas",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1380,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Usa uma tela do escritório: lê, clica, rola, abre um endereço, troca de guia, volta, digita, pergunta à IA aberta na tela (como o Claude) e espera a resposta. Devolve o que ficou na tela.",
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/escritorio/tela",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "parametersBody": {
+          "values": [
+            {
+              "name": "agente",
+              "valueProvider": "fieldValue",
+              "value": "carla"
+            },
+            {
+              "name": "tela",
+              "valueProvider": "modelRequired"
+            },
+            {
+              "name": "acao",
+              "valueProvider": "modelRequired"
+            },
+            {
+              "name": "alvo",
+              "valueProvider": "modelOptional"
+            }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "tela",
+              "description": "qual tela: \"meu pc\", pc0 a pc5, tv, spotify, \"PC 2\" ou o nome do site aberto (ex.: whatsapp, claude)",
+              "type": "string"
+            },
+            {
+              "name": "acao",
+              "description": "ler, clicar, rolar, abrir, guia, voltar, digitar, perguntar ou esperar",
+              "type": "string"
+            },
+            {
+              "name": "alvo",
+              "description": "clicar: texto visível ou número do item da lista; rolar: baixo ou cima; abrir: endereço; guia: número; digitar: texto; perguntar: o pedido completo para a IA da tela; esperar: segundos",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "502dd1fa-a57a-483a-8773-28dd600e93cb",
+      "name": "usar_tela",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Guarda uma instrução permanente que o Wes ensinou (como fazer, o que sempre ou nunca fazer). Ela passa a valer em todos os próximos pedidos. Use uma frase clara e completa.",
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/escritorio/evento",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "parametersBody": {
+          "values": [
+            {
+              "name": "agente",
+              "valueProvider": "fieldValue",
+              "value": "memoria"
+            },
+            {
+              "name": "de",
+              "valueProvider": "fieldValue",
+              "value": "carla"
+            },
+            {
+              "name": "texto",
+              "valueProvider": "modelRequired"
+            }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "texto",
+              "description": "a instrução, numa frase clara (ex.: \"Sempre responder os clientes chamando pelo nome\")",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "f2fbf3fa-ede4-4539-829a-0c0eead32bd1",
+      "name": "lembrar",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1700,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Manda um recado curto para o Wes no meio da tarefa (o que você vai fazer agora ou o que já descobriu), sem terminar a tarefa.",
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/escritorio/evento",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "parametersBody": {
+          "values": [
+            {
+              "name": "agente",
+              "valueProvider": "fieldValue",
+              "value": "carla"
+            },
+            {
+              "name": "de",
+              "valueProvider": "fieldValue",
+              "value": "carla"
+            },
+            {
+              "name": "texto",
+              "valueProvider": "modelRequired"
+            }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "texto",
+              "description": "o recado, em uma ou duas frases",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "18010422-8d89-4296-adc0-1b06aa865f93",
+      "name": "avisar_wes",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1860,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Confere (sem gastar nada) se um projeto de vídeo do Abekyo está certo. Devolve erros, avisos e a duração.",
+        "method": "POST",
+        "url": "http://localhost:3000/api/project/validate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{projeto}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "projeto",
+              "description": "o projeto de vídeo inteiro, em JSON, no formato do Abekyo",
+              "type": "json"
+            }
+          ]
+        }
+      },
+      "id": "4ec241ba-09ba-4170-8084-b23c9268deec",
+      "name": "abekyo_validar",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        2020,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Renderiza o projeto de vídeo no Abekyo e devolve o progresso; a última linha traz o videoUrl do MP4 pronto. Valide antes.",
+        "method": "POST",
+        "url": "http://localhost:3000/api/render",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{projeto}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "projeto",
+              "description": "o projeto de vídeo inteiro, em JSON, no formato do Abekyo",
+              "type": "json"
+            }
+          ]
+        }
+      },
+      "id": "91116e83-b5fc-495f-9b9d-3c1d8338dcb1",
+      "name": "abekyo_renderizar",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        2180,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Cria uma imagem nova a partir de uma descrição (em inglês fica melhor) e já coloca no editor de vídeo. Devolve o endereço /uploads/... para usar como imageUrl no projeto e para mostrar na tela.",
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/escritorio/carla-imagem",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "parametersBody": {
+          "values": [
+            {
+              "name": "descricao",
+              "valueProvider": "modelRequired"
+            },
+            {
+              "name": "formato",
+              "valueProvider": "modelOptional"
+            }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "descricao",
+              "description": "descrição detalhada da imagem: o que aparece, estilo, cores, luz; sem texto escrito na imagem",
+              "type": "string"
+            },
+            {
+              "name": "formato",
+              "description": "quadrado, retrato (carrossel do Instagram, 1080x1350), story (1080x1920) ou paisagem (1920x1080)",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "6683ec24-5578-4fb4-abfb-bc0d8ccbd819",
+      "name": "criar_imagem",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        2340,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// o agente parou por tentar demais: explica o que tentou, em vez de \"Agent stopped due to max iterations\"\nconst passos = ($json.intermediateSteps || []).slice(-4).map(x => `- ${x.action && x.action.tool}: ${String(JSON.stringify((x.action && x.action.toolInput) || '')).slice(0, 120)} → ${String(x.observation || '').replace(/\\s+/g, ' ').slice(0, 160)}`).join('\\n');\nconst parou = /max iterations|stopped due to/i.test(String($json.output || ''));\nconst textoParou = 'Parei porque tentei muitas vezes e não consegui terminar.' + (passos ? '\\n\\nMeus últimos passos:\\n' + passos : '') + '\\n\\nMe diga se quer que eu tente de outro jeito.';\n\nreturn [{ json: { resposta: parou ? textoParou : String($json.output || $json.text || '').trim() || 'Não consegui escrever uma resposta agora.' } }];\n"
+      },
+      "id": "32ba14ca-bce3-4c42-b607-151f5c6160f4",
+      "name": "Ler resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Preparar').first().json.n8n }}/webhook/escritorio/evento",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ card: $('Preparar').first().json.card || ($('Avisar: trabalhando').first().json.body || {}).id, agente: $('Preparar').first().json.agente, status: 'livre', tarefa: '', resultado: $json.resposta, mensagem: { de: $('Preparar').first().json.agente, texto: $json.resposta }, evento: 'terminou (cérebro: ' + ($('Escolher cérebro').isExecuted ? $('Escolher cérebro').last().json.modelo : '-') + '): ' + $('Preparar').first().json.texto }) }}"
+      },
+      "id": "4932e815-53d0-4eaa-b46f-ca35fd1ba482",
+      "name": "Avisar: pronto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2040,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Preparar').first().json.n8n }}/webhook/escritorio/evento",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ card: $('Preparar').first().json.card || ($('Avisar: trabalhando').first().json.body || {}).id, agente: $('Preparar').first().json.agente, status: 'erro', tarefa: '', resultado: 'Não consegui terminar: ' + ($json.error && $json.error.message || $json.error || 'erro na IA'), mensagem: { de: $('Preparar').first().json.agente, texto: 'Não consegui terminar agora: nenhum cérebro (IA) respondeu. ' + (/401|unauthori|sign ?in/i.test(String($json.error || '')) ? 'Os modelos da nuvem do Ollama pedem login: rode o instalar.bat (ele abre o login do Ollama).' : /ECONNREFUSED|fetch failed|connect/i.test(String($json.error || '')) ? 'O Ollama está desligado: abra o Ollama ou o abrir-escritorio.bat.' : 'Tente de novo daqui a pouco.') + ' (' + String($json.error || '').slice(0, 160) + ')' }, evento: 'deu erro em: ' + $('Preparar').first().json.texto }) }}"
+      },
+      "id": "0eb14b91-d148-4662-ab0f-0d3036c8b529",
+      "name": "Avisar: erro",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1820,
+        260
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Pedido de imagem": {
+      "main": [
+        [
+          {
+            "node": "Montar imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar imagem": {
+      "main": [
+        [
+          {
+            "node": "Gerar a imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar a imagem": {
+      "main": [
+        [
+          {
+            "node": "Mandar a imagem para o editor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gerador falhou",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mandar a imagem para o editor": {
+      "main": [
+        [
+          {
+            "node": "Imagem pronta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Editor falhou",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedido chega": {
+      "main": [
+        [
+          {
+            "node": "Recebido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recebido": {
+      "main": [
+        [
+          {
+            "node": "Preparar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar": {
+      "main": [
+        [
+          {
+            "node": "Avisar: trabalhando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar: trabalhando": {
+      "main": [
+        [
+          {
+            "node": "Ler estado do escritório",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler estado do escritório": {
+      "main": [
+        [
+          {
+            "node": "Montar contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cérebro da Carla": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Carla pensa",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escolher cérebro": {
+      "main": [
+        [
+          {
+            "node": "Carla pensa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carla pensa": {
+      "main": [
+        [
+          {
+            "node": "Ler resposta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Trocar cérebro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trocar cérebro": {
+      "main": [
+        [
+          {
+            "node": "Tentar outro cérebro?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tentar outro cérebro?": {
+      "main": [
+        [
+          {
+            "node": "Escolher cérebro",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar: erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ver_telas": {
+      "ai_tool": [
+        [
+          {
+            "node": "Carla pensa",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "usar_tela": {
+      "ai_tool": [
+        [
+          {
+            "node": "Carla pensa",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "lembrar": {
+      "ai_tool": [
+        [
+          {
+            "node": "Carla pensa",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "avisar_wes": {
+      "ai_tool": [
+        [
+          {
+            "node": "Carla pensa",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "abekyo_validar": {
+      "ai_tool": [
+        [
+          {
+            "node": "Carla pensa",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "abekyo_renderizar": {
+      "ai_tool": [
+        [
+          {
+            "node": "Carla pensa",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "criar_imagem": {
+      "ai_tool": [
+        [
+          {
+            "node": "Carla pensa",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar contexto": {
+      "main": [
+        [
+          {
+            "node": "Escolher cérebro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler resposta": {
+      "main": [
+        [
+          {
+            "node": "Avisar: pronto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "executionTimeout": 900
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

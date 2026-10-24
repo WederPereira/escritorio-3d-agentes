@@ -24,6 +24,9 @@
   .css3d.live { pointer-events: auto; }
   #stage.focused canvas.scene { pointer-events: none; }
   .scr { background: #0d1420; color: var(--fg); display: flex; flex-direction: column; overflow: hidden; font-family: var(--display); }
+  .scr.usando { box-shadow: inset 0 0 0 10px var(--c); }
+  .scr .usando-tag { position: absolute; top: 12px; right: 16px; z-index: 5; background: var(--c); color: #12161d; font: 800 22px var(--display); padding: 6px 14px; border-radius: 99px; pointer-events: none; }
+  .scr { position: relative; }
   .scr .bar { display: flex; align-items: center; gap: 12px; padding: 8px 14px; background: #1b2433; font: 600 18px var(--mono); color: var(--muted); flex: none; }
   .scr .bar b { color: var(--fg); font-family: var(--display); font-size: 20px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .scr .bar a, .scr .bar button { color: var(--fg); background: #2a3344; border: 0; border-radius: 6px; padding: 6px 12px; font: 600 16px var(--display); text-decoration: none; cursor: pointer; }
@@ -39,6 +42,22 @@
   .scr .bar.nav button { width: 44px; padding: 6px 0; font-size: 18px; }
   .scr .bar.nav .addr { flex: 1; }
   .scr .bar.nav b { flex: none; max-width: 32%; font-size: 17px; color: var(--muted); }
+  /* PCs com guias, como no Chrome: faixa de guias em cima, barra de endereço e uma página (iframe) por guia */
+  .scr.chrome .tabs { display: flex; align-items: flex-end; gap: 4px; padding: 8px 10px 0; background: #0a0f18; flex: none; }
+  .scr.chrome .tablist { display: flex; gap: 3px; flex: 1; min-width: 0; }
+  .scr.chrome .tab { display: flex; align-items: center; gap: 9px; flex: 0 1 260px; min-width: 0; height: 44px; padding: 0 6px 0 14px; background: #141c2a; color: var(--muted); border-radius: 10px 10px 0 0; font: 600 17px var(--display); cursor: pointer; user-select: none; }
+  .scr.chrome .tab:hover { background: #18212f; }
+  .scr.chrome .tab.on { background: #1b2433; color: var(--fg); }
+  .scr.chrome .tab img { width: 20px; height: 20px; flex: none; border-radius: 3px; }
+  .scr.chrome .tab span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .scr.chrome .tab .x, .scr.chrome .newtab { flex: none; border: 0; background: none; color: inherit; cursor: pointer; border-radius: 50%; font: 600 20px/1 var(--display); }
+  .scr.chrome .tab .x { width: 30px; height: 30px; }
+  .scr.chrome .tab .x:hover, .scr.chrome .newtab:hover { background: #2a3344; color: var(--fg); }
+  .scr.chrome .newtab { width: 38px; height: 38px; margin-bottom: 3px; color: var(--muted); font-size: 26px; }
+  .scr.chrome .tabs > b { flex: none; max-width: 28%; padding: 0 8px 12px; color: var(--muted); font: 600 16px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scr.chrome .pages { flex: 1; display: flex; min-height: 0; }
+  .scr.chrome .pages iframe { display: none; }
+  .scr.chrome .pages iframe.on { display: block; }
   .scr .ytwrap { flex: 1; position: relative; display: flex; min-height: 0; }
   .scr .ytres { position: absolute; inset: 0; background: #0d1420; overflow-y: auto; z-index: 2; }
   .scr .ytgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; padding: 22px 24px; }
@@ -64,6 +83,9 @@
   .fail { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); font-size: 14px; line-height: 1.5; }
   .chip { position: absolute; font: 12px var(--mono); color: var(--muted); background: rgba(20,22,27,.85); border: 1px solid var(--line); padding: 6px 10px; border-radius: 6px; }
   .hint { left: max(16px, env(safe-area-inset-left, 0px)); bottom: 14px; pointer-events: none; }
+  #versaoTag { right: max(16px, env(safe-area-inset-right, 0px)); bottom: 14px; cursor: pointer; font-size: 11px; z-index: 3; }
+  #versaoTag.ruim { color: #ffb4a2; border-color: #7a3b2e; }
+  @media (max-width: 700px) { #versaoTag { display: none; } }
   .modebar { position: absolute; top: 14px; left: max(16px, env(safe-area-inset-left, 0px)); display: flex; gap: 8px; flex-wrap: wrap; }
   .btn { background: #262a33; color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 12px; font: 600 13px var(--display); cursor: pointer; }
   .btn:hover { border-color: var(--accent); }
@@ -149,6 +171,95 @@
   .msg.err { align-self: center; color: var(--accent); background: none; font-size: 12px; }
   #chatForm { display: flex; gap: 8px; border-top: 1px solid var(--line); padding-block: 12px; padding-left: 16px; padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   #chatIn { flex: 1; min-width: 0; background: #171b22; color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px; font: 13px var(--display); }
+  /* janelas cheias do kanban e do mural */
+  .win { position: absolute; inset: 0; z-index: 6; background: #0f1218; display: flex; flex-direction: column; }
+  .win > header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--line);
+                  padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .win > header h2 { margin: 0; font-size: 16px; }
+  .win > header .sub { color: var(--muted); font-size: 12px; flex: 1; min-width: 160px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chipbtn { background: #1f242d; color: var(--fg); border: 1px solid var(--line); border-radius: 99px; padding: 4px 10px; font: 12px var(--display); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .chipbtn[aria-pressed="true"] { border-color: var(--accent); background: #2a2416; }
+  .chipbtn i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  #kanForm, .mural-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; padding: 12px 16px; border-bottom: 1px solid var(--line); background: #121620; }
+  #kanForm textarea, .mural-form textarea { flex: 1 1 300px; min-width: 0; resize: vertical; background: #171b22; color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px; font: 13px/1.45 var(--display); }
+  #kanForm select { background: #171b22; color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 8px; font: 13px var(--display); }
+  #kanForm label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .kan-body { flex: 1; min-height: 0; display: flex; }
+  .kan-cols { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(210px, 1fr)); gap: 12px; padding: 16px; overflow-x: auto; }
+  .kan-col { background: #151922; border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; min-height: 0; }
+  .kan-col.over { border-color: var(--accent); background: #1a1d24; }
+  .kan-col > h3 { margin: 0; padding: 10px 12px; font-size: 13px; display: flex; justify-content: space-between; border-bottom: 3px solid var(--c); }
+  .kan-col > h3 span { color: var(--muted); font: 12px var(--mono); }
+  .kan-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .kcard { background: #1f2530; border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 8px; padding: 8px 10px; cursor: grab; font: 13px/1.4 var(--display); text-align: left; color: var(--fg); }
+  .kcard:hover, .kcard.sel { border-color: var(--accent); border-left-color: var(--c); }
+  .kcard b { font-size: 12px; }
+  .kcard small { display: block; color: var(--muted); font: 11px var(--mono); margin-top: 4px; }
+  .kcard.sim { opacity: .75; cursor: pointer; }
+  .kan-det { width: min(380px, 40%); flex: none; border-left: 1px solid var(--line); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; font-size: 13px; line-height: 1.5; }
+  .kan-det .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .kan-det .result, .pc-info .result { font-size: 13px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; background: #151922; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; max-height: 320px; overflow-y: auto; }
+  .mural-grid { flex: 1; overflow-y: auto; padding: 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; align-content: start; background: #3a2d1f; }
+  .postit { position: relative; color: #1b1e25; padding: 14px 30px 30px 14px; min-height: 130px; box-shadow: 0 6px 14px rgba(0,0,0,.35); font: 15px/1.45 var(--display); white-space: pre-wrap; overflow-wrap: anywhere; transform: rotate(var(--r)); }
+  .postit small { position: absolute; left: 14px; bottom: 8px; font: 11px var(--mono); color: #4a4f5b; }
+  .postit button { position: absolute; top: 4px; right: 6px; border: 0; background: none; font-size: 18px; cursor: pointer; color: #4a4f5b; }
+  .cores { display: flex; gap: 6px; align-items: center; }
+  .cores button { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+  .cores button[aria-pressed="true"] { border-color: #fff; }
+  @media (max-width: 760px) {
+    .kan-body { flex-direction: column; }
+    .kan-cols { grid-template-columns: repeat(4, 78vw); }
+    .kan-det { width: auto; border-left: 0; border-top: 1px solid var(--line); max-height: 45%; }
+  }
+  /* mesa de som */
+  #mixWin { position: absolute; top: 58px; left: max(16px, env(safe-area-inset-left, 0px)); z-index: 6; width: min(410px, calc(100% - 32px)); max-height: calc(100% - 80px); overflow-y: auto;
+            background: #151922; border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.45); }
+  #mixWin h3 { margin: 0; font-size: 15px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .mix-row { display: grid; grid-template-columns: minmax(0, 1fr) 110px auto; gap: 8px; align-items: center; font-size: 13px; }
+  .mix-row .nome { min-width: 0; }
+  .mix-row .nome small { display: block; color: var(--muted); font: 11px var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mix-row .nome small.on { color: var(--ok); }
+  .mix-row input[type=range] { width: 100%; accent-color: var(--accent); }
+  .mix-row .bts { display: flex; gap: 4px; }
+  .mix-row .bts button, .seg button { background: #262a33; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: 600 12px var(--display); cursor: pointer; }
+  .mix-row .bts button[aria-pressed="true"] { border-color: #e5534b; color: #ff8a80; }
+  .seg { display: flex; gap: 4px; flex-wrap: wrap; }
+  .seg button[aria-pressed="true"] { border-color: var(--accent); background: #2a2416; }
+  #mixWin label.chk { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.4; }
+  .scr.chrome .tab .som { flex: none; font-style: normal; font-size: 16px; }
+  /* conversa com um agente (mesmo molde da janela do computador) */
+  #agWin { position: absolute; inset: 0; z-index: 6; background: #0f1218; display: flex; flex-direction: column; }
+  #agWin header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--line);
+                  padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  #agWin h2 { margin: 0; font-size: 16px; flex: 1; min-width: 0; }
+  #agWin h2 small { color: var(--muted); font-weight: 400; }
+  #agWin .swatch { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+  #agForm { display: flex; gap: 8px; align-items: flex-end; border-top: 1px solid var(--line); padding-block: 12px; padding-left: 16px; padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  #agIn { flex: 1; min-width: 0; resize: vertical; max-height: 200px; background: #171b22; color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px; font: 13px/1.45 var(--display); }
+  .msg .who { display: block; font: 600 11px var(--mono); color: var(--muted); margin-bottom: 3px; }
+  .msg.pending { opacity: .6; }
+  .envio { margin: 8px 0; padding: 10px; border: 1px solid #3c6b4a; background: #14211a; border-radius: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .envio.feito { border-color: var(--line); background: #151922; opacity: .85; }
+  .envio-top { font-size: 12px; color: #9fd8b0; } .envio-top small { color: var(--muted); font-family: var(--mono); }
+  .envio textarea { width: 100%; box-sizing: border-box; background: #0f1218; color: inherit; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: inherit; resize: vertical; }
+  .envio-pe { display: flex; align-items: center; gap: 10px; } .envio-st { font-size: 12px; color: var(--muted); }
+  .msg .passos { margin: 6px 0 0; padding-left: 4px; list-style: none; font: 12px var(--mono); font-style: normal; color: var(--muted); }
+  .msg .passos li { margin: 2px 0; }
+  .memorias { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .memorias li { font-size: 13px; background: #151922; border: 1px solid var(--line); border-radius: 8px; padding: 6px 30px 6px 10px; position: relative; }
+  .memorias .x { position: absolute; right: 6px; top: 4px; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 15px; }
+  .btn.mini { padding: 2px 8px; font-size: 11px; margin-left: 6px; }
+  .md { white-space: normal !important; }
+  .md p { margin: 0 0 8px; } .md p:last-child { margin-bottom: 0; } .md p.h { font-weight: 700; margin-top: 4px; }
+  .md ul, .md ol { margin: 0 0 8px; padding-left: 20px; } .md li { margin: 2px 0; }
+  .md table { border-collapse: collapse; font-size: 12px; margin: 4px 0 10px; display: block; overflow-x: auto; max-width: 100%; }
+  .md th, .md td { border: 1px solid var(--line); padding: 5px 7px; vertical-align: top; text-align: left; }
+  .md th { background: #232a36; }
+  .md code { font-family: var(--mono); font-size: 12px; background: #0f1218; padding: 1px 4px; border-radius: 4px; }
+  .md a { color: #8fc7ff; } .md hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0; }
+  .msg.typing { color: var(--muted); font-style: italic; }
+  .pc-info code { font: 12px var(--mono); background: #171b22; border-radius: 4px; padding: 1px 5px; }
   @media (max-width: 760px) {
     .pc-body { grid-template-columns: 1fr; grid-template-rows: auto minmax(260px, 1fr); overflow-y: auto; }
     .pc-info { border-right: 0; border-bottom: 1px solid var(--line); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -165,7 +276,8 @@
       <button class="btn primary" id="modeBtn">Andar pelo escritório</button>
       <button class="btn" id="viewBtn" hidden>Ver em 3ª pessoa</button>
       <button class="btn" id="brainBtn">Mapa do Segundo Cérebro</button>
-      <button class="btn" id="soundBtn">Som: ligado</button>
+      <button class="btn" id="soundBtn" aria-expanded="false">Som</button>
+      <button class="btn" id="n8nBtn" hidden title="Agentes de verdade, que rodam no n8n do seu PC">Agentes: simulados</button>
     </div>
     <div id="focusBar" hidden>
       <button class="btn primary" id="unfocusBtn">Levantar (Esc)</button>
@@ -174,6 +286,7 @@
     <div id="crosshair" hidden></div>
     <div class="chip" id="tip" hidden></div>
     <div class="chip" id="toast" hidden></div>
+    <button class="chip" id="versaoTag" title="Versão do escritório e da extensão. Clique para testar se os agentes conseguem usar cada tela."></button>
     <div id="pause" hidden>
       <div class="box">
         <h2>Jogo pausado</h2>
@@ -186,6 +299,58 @@
     <div class="touchpad" id="touchpad" hidden>
       <button class="btn" id="tFwd" aria-label="Andar para frente">▲</button>
       <button class="btn" id="tBack" aria-label="Andar para trás">▼</button>
+    </div>
+    <div id="mixWin" hidden role="dialog" aria-label="Som do escritório"></div>
+    <div id="kanWin" class="win" hidden>
+      <header>
+        <h2>Quadro de tarefas</h2>
+        <span class="sub" id="kanSub"></span>
+        <div class="chips" id="kanFiltro"></div>
+        <button class="btn primary" id="kanNova">+ Nova tarefa</button>
+        <button class="btn" id="kanClose">Fechar</button>
+      </header>
+      <form id="kanForm" hidden>
+        <textarea id="kanTexto" rows="2" maxlength="500" placeholder="O que precisa ser feito?"></textarea>
+        <select id="kanAgente" aria-label="Para quem"></select>
+        <label><input type="checkbox" id="kanAgora" checked> pedir para fazer agora</label>
+        <button class="btn primary">Criar</button>
+        <button class="btn" type="button" id="kanCancelar">Cancelar</button>
+      </form>
+      <div class="kan-body">
+        <div class="kan-cols" id="kanCols"></div>
+        <aside class="kan-det" id="kanDet" hidden></aside>
+      </div>
+    </div>
+    <div id="muralWin" class="win" hidden>
+      <header>
+        <h2>Mural de avisos</h2>
+        <span class="sub" id="muralSub"></span>
+        <button class="btn" id="muralClose">Fechar</button>
+      </header>
+      <form class="mural-form" id="muralForm">
+        <textarea id="muralTexto" rows="2" maxlength="400" placeholder="Escreva um aviso para a equipe"></textarea>
+        <div class="cores" id="muralCores" aria-label="Cor do aviso"></div>
+        <button class="btn primary">Colar no mural</button>
+      </form>
+      <div class="mural-grid" id="muralGrid"></div>
+    </div>
+    <div id="agWin" hidden>
+      <header>
+        <span class="swatch" id="agSwatch"></span>
+        <h2 id="agTitle"></h2>
+        <span id="agPill"></span>
+        <button class="btn" id="agClose">Fechar</button>
+      </header>
+      <div class="pc-body">
+        <section class="pc-info" id="agInfo"></section>
+        <section class="pc-chat">
+          <div class="msgs" id="agMsgs"></div>
+          <form id="agForm">
+            <textarea id="agIn" rows="2" autocomplete="off"></textarea>
+            <button class="btn primary">Enviar</button>
+          </form>
+        </section>
+      </div>
     </div>
     <div id="pcWin" hidden>
       <header>
@@ -238,6 +403,8 @@
   </aside>
 </div>
 
+<!-- endereço do n8n gravado pelo instalar.bat (o arquivo só existe depois da instalação) -->
+<script src="escritorio-config.js" onerror="void 0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 function showFail(msg) { document.getElementById('stage').insertAdjacentHTML('beforeend', `<div class="fail">${msg}</div>`); }
@@ -368,22 +535,25 @@ const STATUS = {
   meeting: { txt: 'Em reunião',  color: '#5aa3f0' },
   idle:    { txt: 'Pausa',       color: '#a0a7b3' },
   walking: { txt: 'Andando',     color: '#f2b54a' },
+  using:   { txt: 'Usando uma tela', color: '#c78ae6' },
+  error:   { txt: 'Com erro',    color: '#e5534b' },
 };
+// tarefas de exemplo dos agentes que ainda são simulados (os de verdade recebem tarefas pelo n8n)
 const TASKS = {
-  'Pesquisa': ['Levantar concorrentes do nicho', 'Resumir 5 artigos sobre o tema', 'Mapear palavras-chave'],
-  'Desenvolvimento': ['Corrigir bug no formulário', 'Criar endpoint de relatórios', 'Escrever testes da API'],
-  'Redação': ['Escrever post para o blog', 'Criar roteiro de vídeo', 'Revisar legenda do carrossel'],
-  'Revisão': ['Revisar texto da Carla', 'Checar dados do relatório', 'Aprovar entrega da semana'],
-  'Dados': ['Atualizar planilha de vendas', 'Gerar gráfico mensal', 'Limpar base de clientes'],
-  'Gestão': ['Distribuir tarefas do dia', 'Planejar sprint', 'Enviar status para o cliente'],
+  'Comercial': ['Revisar follow-ups do dia', 'Sugerir resposta para lead da creche', 'Conferir a régua R1–R5'],
+  'Leads': ['Conferir leads novos do tráfego', 'Separar leads quentes', 'Atualizar planilha de leads'],
+  'Conteúdo e vídeos': ['Roteiro de vídeo para o Reels', 'Legenda do carrossel', 'Editar vídeo no Remotion'],
+  'Agenda': ['Resumir compromissos do dia', 'Preparar pauta da reunião', 'Conferir conflitos na agenda'],
+  'Relatórios': ['Relatório diário do Cantinho', 'Métricas da semana', 'Gráfico de vendas do mês'],
+  'Gestor': ['Distribuir tarefas do dia', 'Cobrar pendências da equipe', 'Resumo do dia para o Wes'],
 };
 const TEAM = [
-  { id: 'ana',   name: 'Ana',   role: 'Pesquisa',        color: '#e0795b' },
-  { id: 'bruno', name: 'Bruno', role: 'Desenvolvimento', color: '#5aa3f0' },
-  { id: 'carla', name: 'Carla', role: 'Redação',         color: '#c78ae6' },
-  { id: 'davi',  name: 'Davi',  role: 'Revisão',         color: '#4cc38a' },
-  { id: 'eva',   name: 'Eva',   role: 'Dados',           color: '#f2b54a' },
-  { id: 'fabio', name: 'Fábio', role: 'Gestão',          color: '#5fc9c4' },
+  { id: 'ana',   name: 'Ana',   role: 'Comercial',         color: '#e0795b' },
+  { id: 'bruno', name: 'Bruno', role: 'Leads',             color: '#5aa3f0' },
+  { id: 'carla', name: 'Carla', role: 'Conteúdo e vídeos', color: '#c78ae6' },
+  { id: 'davi',  name: 'Davi',  role: 'Agenda',            color: '#4cc38a' },
+  { id: 'eva',   name: 'Eva',   role: 'Relatórios',        color: '#f2b54a' },
+  { id: 'fabio', name: 'Fábio', role: 'Gestor',            color: '#5fc9c4' },
 ];
 
 const stage = document.getElementById('stage');
@@ -449,6 +619,20 @@ const screens = desks.map(([x, z]) => {
   screen.userData.cv = cv; screen.userData.tex = tex;
   return screen;
 });
+// segunda tela na mesa da Ana (PC 1): o painel comercial, com a régua de follow-up e os envios pelo Telegram
+const painelMesh = (() => {
+  const [x, z] = desks[0], g = new THREE.Group();
+  g.position.set(x + 0.98, 0, z - 0.2); g.rotation.y = -0.42; scene.add(g);
+  const preto = new THREE.MeshStandardMaterial({ color: '#101216', roughness: 0.8 });
+  const moldura = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.05), preto); moldura.position.set(0, 1.33, 0); moldura.castShadow = true;
+  const pe = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.24, 0.08), preto); pe.position.set(0, 1.07, -0.04);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.2), preto); base.position.set(0, 0.97, -0.02);
+  const tela = new THREE.Mesh(new THREE.PlaneGeometry(0.74, 0.44), new THREE.MeshBasicMaterial({ color: '#16211b' }));
+  tela.position.set(0, 1.33, 0.027);
+  g.add(moldura, pe, base, tela);
+  tela.userData.media = 'painel';
+  return tela;
+})();
 
 box(2, 0.08, 3, '#dcd6cb', 6.5, 0.8, -2, true);
 box(0.4, 0.76, 0.4, '#8f8a80', 6.5, 0.38, -2);
@@ -463,35 +647,77 @@ box(3, 0.6, 0.25, '#42604f', -6, 0.75, 6.85);
   leaf.position.set(x, 1.0, z); leaf.castShadow = true; scene.add(leaf);
 });
 
-// quadro grande do Segundo Cérebro na parede do fundo
-const brainCv = document.createElement('canvas'); brainCv.width = BW; brainCv.height = BH;
-const brainTex = new THREE.CanvasTexture(brainCv);
-brainTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-const brainBoard = new THREE.Mesh(new THREE.PlaneGeometry(8.4, 2.8), new THREE.MeshBasicMaterial({ map: brainTex }));
-brainBoard.position.set(-3.6, 2.0, -6.94); scene.add(brainBoard);
+// quadro grande na parede do fundo: kanban das tarefas dos agentes (o clique abre o quadro interativo).
+// O mapa do Segundo Cérebro continua no botão de cima.
+const QW = 2400, QH = 800;
+const quadroCv = document.createElement('canvas'); quadroCv.width = QW; quadroCv.height = QH;
+const quadroTex = new THREE.CanvasTexture(quadroCv);
+quadroTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const quadro = new THREE.Mesh(new THREE.PlaneGeometry(8.4, 2.8), new THREE.MeshBasicMaterial({ map: quadroTex }));
+quadro.position.set(-3.6, 2.0, -6.94); scene.add(quadro);
 box(8.6, 3.0, 0.06, '#22262e', -3.6, 2.0, -7.0);
-let boardHi = null;
-function drawBrainBoard() { drawBrain(brainCv.getContext('2d'), BW, BH, boardHi, { title: true }); brainTex.needsUpdate = true; }
-
-// quadro de tarefas na parede da esquerda
-const kanCv = document.createElement('canvas'); kanCv.width = 1024; kanCv.height = 400;
-const kanTex = new THREE.CanvasTexture(kanCv);
-const kanBoard = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.64), new THREE.MeshBasicMaterial({ map: kanTex }));
-kanBoard.rotation.y = Math.PI / 2; kanBoard.position.set(-9.98, 1.9, -1.5); scene.add(kanBoard);
-let doneCount = 0, lastDone = '—';
-function drawBoard() {
-  const c = kanCv.getContext('2d');
-  c.fillStyle = '#f3f1ec'; c.fillRect(0, 0, 1024, 400);
-  c.fillStyle = '#1b1e25'; c.font = '800 44px Manrope, sans-serif'; c.fillText('Quadro da equipe', 40, 70);
-  const cols = [['Trabalhando', count('working'), '#2f9e6a'], ['Em reunião', count('meeting'), '#3b82c9'], ['Concluídas', doneCount, '#b57d12']];
-  cols.forEach(([t, n, col], i) => {
-    const x = 40 + i * 325;
-    c.fillStyle = col; c.fillRect(x, 105, 300, 8);
-    c.fillStyle = '#4a4f5b'; c.font = '600 30px Manrope, sans-serif'; c.fillText(t, x, 160);
-    c.fillStyle = '#1b1e25'; c.font = '800 96px Manrope, sans-serif'; c.fillText(String(n), x, 265);
+// dados vindos do n8n (preenchidos pela parte "agentes de verdade"); sem n8n, o kanban mostra as tarefas simuladas
+let kanbanData = null, muralData = null;
+const KAN_COLS = [['afazer', 'A fazer', '#8d95a5'], ['fazendo', 'Fazendo', '#4cc38a'], ['feito', 'Feito', '#5aa3f0'], ['erro', 'Com erro', '#e5534b']];
+function kanbanCards() {
+  if (kanbanData) return kanbanData;
+  return agents.filter(a => a.task).map(a => ({ id: 'sim-' + a.id, agente: a.id, tarefa: a.task, coluna: 'fazendo', sim: true }));
+}
+function drawQuadro() {
+  const c = quadroCv.getContext('2d'), cards = kanbanCards();
+  c.fillStyle = '#12161d'; c.fillRect(0, 0, QW, QH);
+  c.fillStyle = '#e8eaef'; c.font = '800 52px Manrope, sans-serif'; c.fillText('Quadro de tarefas', 60, 88);
+  c.fillStyle = '#8d95a5'; c.font = '30px "JetBrains Mono", monospace';
+  c.fillText(kanbanData ? 'ao vivo · agentes do n8n · clique para mexer' : 'simulado · ligue o n8n para ver as tarefas de verdade', 600, 86);
+  const colW = (QW - 120 - 3 * 30) / 4;
+  KAN_COLS.forEach(([id, nome, cor], i) => {
+    const x = 60 + i * (colW + 30), lista = cards.filter(k => k.coluna === id).sort((p, q) => String(q.atualizado || '').localeCompare(String(p.atualizado || '')));
+    c.fillStyle = '#1a1f28'; c.fillRect(x, 120, colW, QH - 150);
+    c.fillStyle = cor; c.fillRect(x, 120, colW, 8);
+    c.fillStyle = '#e8eaef'; c.font = '700 36px Manrope, sans-serif'; c.fillText(nome, x + 22, 178);
+    c.fillStyle = '#8d95a5'; c.font = '32px "JetBrains Mono", monospace'; c.textAlign = 'right'; c.fillText(String(lista.length), x + colW - 22, 178); c.textAlign = 'left';
+    const caber = 4;
+    lista.slice(0, caber).forEach((k, j) => {
+      const y = 205 + j * 130, ag = TEAM.find(t => t.id === k.agente);
+      c.fillStyle = '#242b37'; c.fillRect(x + 16, y, colW - 32, 115);
+      c.fillStyle = ag ? ag.color : '#8d95a5'; c.fillRect(x + 16, y, 10, 115);
+      c.fillStyle = ag ? ag.color : '#8d95a5'; c.font = '700 26px Manrope, sans-serif'; c.fillText((ag ? ag.name : k.agente) + (k.sim ? ' · simulado' : ''), x + 42, y + 36);
+      c.fillStyle = '#d7dbe3'; c.font = '26px Manrope, sans-serif'; wrapText(c, k.tarefa, x + 42, y + 72, colW - 80, 32, 2);
+    });
+    if (lista.length > caber) { c.fillStyle = '#8d95a5'; c.font = '26px "JetBrains Mono", monospace'; c.fillText(`+${lista.length - caber} no quadro`, x + 22, QH - 48); }
   });
-  c.fillStyle = '#4a4f5b'; c.font = '28px "JetBrains Mono", monospace'; c.fillText('Última entrega: ' + lastDone.slice(0, 48), 40, 350);
-  kanTex.needsUpdate = true;
+  quadroTex.needsUpdate = true;
+}
+
+// mural de avisos na parede da esquerda (cortiça com post-its; o clique abre o mural para escrever)
+const MW = 1536, MH = 600;
+const muralCv = document.createElement('canvas'); muralCv.width = MW; muralCv.height = MH;
+const muralTex = new THREE.CanvasTexture(muralCv);
+muralTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const muralMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.64), new THREE.MeshBasicMaterial({ map: muralTex }));
+muralMesh.rotation.y = Math.PI / 2; muralMesh.position.set(-9.98, 1.9, -1.5); scene.add(muralMesh);
+const POSTIT = { amarelo: '#fde68a', rosa: '#fbcfe8', azul: '#bfdbfe', verde: '#bbf7d0' };
+let doneCount = 0, lastDone = '—';
+function muralNotas() { return muralData || loadMuralLocal(); }
+function loadMuralLocal() { try { return JSON.parse(localStorage.getItem('escritorio.mural') || '[]'); } catch (e) { return []; } }
+function drawMural() {
+  const c = muralCv.getContext('2d'), notas = muralNotas().slice(-8).reverse();
+  c.fillStyle = '#b08455'; c.fillRect(0, 0, MW, MH);
+  for (let i = 0; i < 900; i++) { c.fillStyle = `rgba(${Math.random() < .5 ? '70,45,20' : '230,200,150'},${Math.random() * .12})`; c.fillRect((i * 97) % MW, (i * 53) % MH, 3, 3); }
+  c.fillStyle = '#f3f1ec'; c.fillRect(40, 26, 470, 70);
+  c.fillStyle = '#1b1e25'; c.font = '800 46px Manrope, sans-serif'; c.fillText('Mural de avisos', 62, 78);
+  if (!notas.length) { c.fillStyle = '#3a2a18'; c.font = '600 34px Manrope, sans-serif'; c.fillText('Clique aqui para escrever um aviso para a equipe', 60, 320); }
+  notas.forEach((n, i) => {
+    const col = i % 4, row = Math.floor(i / 4), x = 40 + col * 370, y = 120 + row * 235, ang = ((n.id || '').length % 5 - 2) * 0.012;
+    c.save(); c.translate(x + 165, y + 105); c.rotate(ang); c.translate(-165, -105);
+    c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(8, 10, 330, 210);
+    c.fillStyle = POSTIT[n.cor] || POSTIT.amarelo; c.fillRect(0, 0, 330, 210);
+    c.fillStyle = '#c0392b'; c.beginPath(); c.arc(165, 14, 9, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#1b1e25'; c.font = '600 27px Manrope, sans-serif'; wrapText(c, n.texto, 18, 58, 294, 33, 4);
+    c.fillStyle = '#4a4f5b'; c.font = '22px "JetBrains Mono", monospace'; c.fillText('— ' + (({ wes: 'Wes' })[n.de] || (TEAM.find(t => t.id === n.de) || {}).name || n.de || ''), 18, 196);
+    c.restore();
+  });
+  muralTex.needsUpdate = true;
 }
 
 // ================= agentes =================
@@ -518,6 +744,7 @@ function drawLabel(a) {
   c.fillStyle = 'rgba(20,22,27,.88)'; c.beginPath(); c.roundRect ? c.roundRect(4, 6, 248, 52, 26) : c.rect(4, 6, 248, 52); c.fill();
   c.fillStyle = STATUS[a.status].color; c.beginPath(); c.arc(34, 32, 9, 0, Math.PI * 2); c.fill();
   c.fillStyle = '#e8eaef'; c.font = '700 26px Manrope, sans-serif'; c.fillText(a.name, 54, 41);
+  if (a.real) { c.fillStyle = '#f2b54a'; c.font = '700 18px JetBrains Mono, monospace'; c.fillText('IA', 200, 40); }
   tex.needsUpdate = true;
 }
 
@@ -559,14 +786,14 @@ function goTo(a, target, status, duration) {
   a.path = pts; a.spot = target; a.next = { status, duration };
   setStatus(a, 'walking');
 }
-function setStatus(a, st) { a.status = st; drawLabel(a); drawBoard(); renderList(); if (selected === a) renderDetail(); }
+function setStatus(a, st) { a.status = st; drawLabel(a); if (!kanbanData) drawQuadro(); renderList(); if (selected === a) renderDetail(); }
 
 const feed = [];
 function log(a, msg) {
   const t = new Date().toLocaleTimeString('pt-BR');
   a.logs.unshift({ t, msg }); a.logs.length = Math.min(a.logs.length, 30);
   feed.unshift({ t, who: a.name, msg }); feed.length = Math.min(feed.length, 40);
-  document.getElementById('feed').innerHTML = feed.map(f => `<li><time>${f.t}</time><b>${f.who}</b> ${f.msg}</li>`).join('');
+  document.getElementById('feed').innerHTML = feed.map(f => `<li><time>${f.t}</time><b>${f.who}</b> ${escapeHtml(f.msg)}</li>`).join('');
   if (selected === a) renderDetail();
 }
 function giveTask(a, task) {
@@ -587,6 +814,7 @@ function takeBreak(a) {
   goTo(a, s, 'idle', 3 + Math.random() * 5);
 }
 function decide(a) {
+  if (a.real) { a.timer = Infinity; return; } // agente de verdade: quem decide é o n8n
   if (a.status === 'working') {
     doneCount++; lastDone = `${a.name}: ${a.task}`;
     log(a, `concluiu “${a.task}”`);
@@ -596,7 +824,7 @@ function decide(a) {
   } else if (a.status === 'meeting') {
     log(a, 'saiu da reunião');
     Math.random() < 0.6 ? giveTask(a) : takeBreak(a);
-  } else if (a.status === 'idle') {
+  } else if (a.status === 'idle' || a.status === 'error') {
     giveTask(a);
   }
 }
@@ -781,6 +1009,46 @@ function setCalState(st) {
   pcs.forEach(refreshPc);
 }
 const escapeHtml = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+// Markdown simples das respostas dos agentes: parágrafos, listas, **negrito**, `código`, tabelas e links (o texto é escapado antes)
+function mdInline(t) {
+  return escapeHtml(t)
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/__([^_]+)__/g, '<b>$1</b>')
+    .replace(/(^|[\s(])\*([^*\s][^*]*?)\*(?=[\s).,!?:;]|$)/g, '$1<i>$2</i>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/(https?:\/\/[^\s<)]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+function md(texto) {
+  let t = String(texto || '').replace(/\r/g, '');
+  // tabela que chegou numa linha só ("| a | b | | c | d |"): quebra nas linhas
+  t = t.split('\n').map(l => /\|\s*:?-{3,}/.test(l) && (l.match(/\|/g) || []).length > 8
+    ? l.replace(/^([^|]*\S)\s*\|/, '$1\n|').replace(/\|\s+\|(?=\s*\S)/g, '|\n|') : l).join('\n');
+  const ls = t.split('\n'), out = [];
+  let para = [];
+  const fechaPara = () => { if (para.length) out.push(`<p>${para.map(mdInline).join('<br>')}</p>`); para = []; };
+  for (let i = 0; i < ls.length; i++) {
+    const l = ls[i];
+    if (/^\s*\|.*\|\s*$/.test(l)) {  // tabela
+      fechaPara();
+      const rows = [];
+      while (i < ls.length && /^\s*\|.*\|\s*$/.test(ls[i])) { if (!/^\s*\|[\s:|-]+\|\s*$/.test(ls[i])) rows.push(ls[i].trim().slice(1, -1).split('|').map(c => c.trim())); i++; }
+      i--;
+      out.push('<table>' + rows.map((r, j) => '<tr>' + r.map(c => j ? `<td>${mdInline(c)}</td>` : `<th>${mdInline(c)}</th>`).join('') + '</tr>').join('') + '</table>');
+    } else if (/^\s*([-*•]|\d+[.)])\s+/.test(l)) {  // lista
+      fechaPara();
+      const num = /^\s*\d/.test(l), itens = [];
+      while (i < ls.length && /^\s*([-*•]|\d+[.)])\s+/.test(ls[i])) { itens.push(ls[i].replace(/^\s*([-*•]|\d+[.)])\s+/, '')); i++; }
+      i--;
+      out.push(`<${num ? 'ol' : 'ul'}>${itens.map(x => `<li>${mdInline(x)}</li>`).join('')}</${num ? 'ol' : 'ul'}>`);
+    } else if (/^\s*#{1,6}\s+/.test(l)) { fechaPara(); out.push(`<p class="h">${mdInline(l.replace(/^\s*#{1,6}\s+/, ''))}</p>`); }
+    else if (/^\s*(-{3,}|\*{3,})\s*$/.test(l)) { fechaPara(); out.push('<hr>'); }
+    else if (!l.trim()) fechaPara();
+    else para.push(l);
+  }
+  fechaPara();
+  return out.join('');
+}
+// texto corrido sem marcações (para os avisos curtos)
+const semMd = t => String(t || '').replace(/\[\[\/?enviar[^\]]*\]\]/g, ' ').replace(/\*\*|__|`|^#+\s*/gm, '').replace(/\s*\|\s*/g, ' · ').replace(/\s+/g, ' ').trim();
 const htmlToText = h => { const d = document.createElement('div'); d.innerHTML = String(h || '').replace(/<br\s*\/?>/gi, '\n'); return d.textContent; };
 
 let mcpRef = null, sampleRef = null, dbRef = null, userRef = null;
@@ -984,7 +1252,7 @@ function renderDetail() {
         <button class="btn" id="act-break">Pausa</button>
       </div>
       <div><p class="label" style="margin-top:4px">Histórico</p>
-      <ul class="log">${a.logs.map(l => `<li><time>${l.t}</time>${l.msg}</li>`).join('') || '<li>Sem eventos ainda</li>'}</ul></div>
+      <ul class="log">${a.logs.map(l => `<li><time>${l.t}</time>${escapeHtml(l.msg)}</li>`).join('') || '<li>Sem eventos ainda</li>'}</ul></div>
     </div>`;
   document.getElementById('act-task').onclick = () => giveTask(a);
   document.getElementById('act-meet').onclick = () => callMeeting(a);
@@ -995,6 +1263,7 @@ function select(a) {
   selected = a; renderList(); renderDetail();
 }
 listEl.addEventListener('click', e => { const b = e.target.closest('.agent-btn'); if (b) select(agents.find(a => a.id === b.dataset.id)); });
+
 document.getElementById('brainStats').innerHTML =
   `<div><b>${NOTES.filter(n => !n[3]).length}</b><span>notas</span></div><div><b>${LINKS.length}</b><span>links</span></div><div><b>${NOTES.filter(n => n[3]).length}</b><span>a criar</span></div>`;
 
@@ -1095,7 +1364,7 @@ document.addEventListener('pointerlockchange', () => {
   const locked = !!document.pointerLockElement;
   renderer.domElement.style.cursor = locked ? 'none' : 'default';
   if (locked) { lockFailed = false; pauseEl.hidden = true; pauseMsg.className = ''; }
-  else if (brainEl.hidden && pcWin.hidden && !focusRef) { pauseEl.hidden = false; Object.keys(keys).forEach(k => keys[k] = false); }
+  else if (brainEl.hidden && pcWin.hidden && agWin.hidden && kanWin.hidden && muralWin.hidden && !focusRef) { pauseEl.hidden = false; Object.keys(keys).forEach(k => keys[k] = false); }
   fpHint();
 });
 document.addEventListener('fullscreenchange', () => {
@@ -1111,7 +1380,7 @@ document.getElementById('resumeBtn').onclick = play;
 document.getElementById('viewBtn2').onclick = () => setView(view === 1 ? 3 : 1);
 document.getElementById('quitBtn').onclick = () => exitFP();
 let toastTimer = 0;
-function toast(html) { toastEl.innerHTML = html; toastEl.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.hidden = true, 4500); }
+function toast(html, ms = 4500) { toastEl.innerHTML = html; toastEl.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.hidden = true, ms); }
 function enterFP() {
   mode = 'fp';
   savedCam.pos.copy(camera.position); savedCam.target.copy(controls.target);
@@ -1133,13 +1402,17 @@ function exitFP() {
   viewBtn.hidden = true; avatar.visible = false;
   crossEl.hidden = true; tipEl.hidden = true; touchEl.hidden = true;
   hintEl.textContent = 'arraste para girar · role para zoom · clique num agente ou no quadro';
-  setBoardHi(null);
 }
 modeBtn.onclick = () => mode === 'fp' ? exitFP() : enterFP();
 viewBtn.onclick = () => setView(view === 1 ? 3 : 1);
 addEventListener('keydown', e => {
   if (e.code === 'Escape' && focusRef) { unfocus(); return; }
-  if (e.target.closest && e.target.closest('input, textarea')) return;
+  if (e.code === 'Escape' && !agWin.hidden) { closeAgent(false); return; }
+  if (e.code === 'Escape' && !kanWin.hidden) { if (kan.sel) { kan.sel = null; renderKanban(); } else closeKanban(false); return; }
+  if (e.code === 'Escape' && !muralWin.hidden) { closeMural(false); return; }
+  if (e.code === 'Escape' && !mixWin.hidden) { toggleMix(); return; }
+  if (e.target.closest && e.target.closest('input, textarea, select')) return;
+  if (!agWin.hidden || !kanWin.hidden || !muralWin.hidden) return; // janela aberta: teclado é dela
   if (focusRef) return;
   if (e.code === 'Escape' && !brainEl.hidden) { closeBrain(false); return; }
   if (e.code === 'Escape' && !pcWin.hidden) { closePc(false); return; }
@@ -1202,18 +1475,15 @@ function updatePlayer(dt) {
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 function pick(x, y) {
   ndc.set(x, y); ray.setFromCamera(ndc, camera);
-  const hits = ray.intersectObjects([...pickables, brainBoard]);
+  const hits = ray.intersectObjects([...pickables, quadro, muralMesh]);
   if (!hits.length) return null;
   const h = hits[0];
-  if (h.object === brainBoard) {
-    const view = { s: 1, ox: 0, oy: 0 };
-    return { board: true, node: nodeAt(h.uv.x * BW, (1 - h.uv.y) * BH, view, 40), dist: h.distance };
-  }
+  if (h.object === quadro) return { board: true, dist: h.distance };
+  if (h.object === muralMesh) return { mural: true, dist: h.distance };
   if (h.object.userData.media) return { media: h.object.userData.media, mesh: h.object, dist: h.distance };
   if (h.object.userData.pc != null) return { pc: pcs[h.object.userData.pc], dist: h.distance };
   return { agent: agents.find(a => a.id === h.object.userData.agentId), dist: h.distance };
 }
-function setBoardHi(i) { if (i !== boardHi) { boardHi = i; drawBrainBoard(); } }
 function screenToNdc(e) {
   const r = renderer.domElement.getBoundingClientRect();
   return [((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1];
@@ -1221,13 +1491,12 @@ function screenToNdc(e) {
 function act(hit) {
   if (!hit) { select(null); return; }
   if (EMBED && (hit.pc || hit.media) && focusByMesh(hit.pc ? hit.pc.screen : hit.mesh)) return;
+  if (hit.media === 'painel') { window.open('painel-comercial.html', '_blank', 'noopener'); return; }
   if (hit.media) { toast('A TV e o Spotify funcionam na versão do computador: abra o escritório pelo <b>abrir-escritorio.bat</b> no Chrome.'); return; }
   if (hit.pc) { openPc(hit.pc); return; }
-  if (hit.agent) {
-    select(hit.agent);
-    toast(`<b>${hit.agent.name}</b> · ${hit.agent.role}<br>${STATUS[hit.agent.status].txt}${hit.agent.task ? ' · ' + hit.agent.task : ''}`);
-  }
-  else if (hit.board) openBrain(hit.node);
+  if (hit.agent) { select(hit.agent); openAgent(hit.agent); }
+  else if (hit.board) openKanban();
+  else if (hit.mural) openMural();
 }
 
 let down = null, dragging = false;
@@ -1248,7 +1517,6 @@ renderer.domElement.addEventListener('pointermove', e => {
     else if (down) { dragging = dragging || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4; if (dragging) look(e.movementX, e.movementY); }
   } else {
     const hit = pick(...screenToNdc(e));
-    setBoardHi(hit && hit.board ? hit.node : null);
     renderer.domElement.style.cursor = hit ? 'pointer' : 'grab';
   }
 });
@@ -1288,7 +1556,7 @@ const speakerPos = [];
   speakerPos.push(new THREE.Vector3(x, 0.8, z));
 });
 tvMesh.userData.media = 'tv'; spMesh.userData.media = 'spotify';
-pickables.push(tvMesh, spMesh);
+pickables.push(tvMesh, spMesh, painelMesh);
 
 const cssScene = new THREE.Scene();
 let cssRenderer = null;
@@ -1309,6 +1577,7 @@ function addScreen(key, mesh, pxW, el) {
   mesh.material = new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0, blending: THREE.NoBlending });
   const f = { key, mesh, w: p.width, h: p.height, el }; focusables.push(f); return f;
 }
+const painelEl = () => screenEl('Painel comercial · Ana · régua de follow-up e Telegram', 'painel-comercial.html', frame('painel-comercial.html'));
 function screenEl(title, link, bodyHtml) {
   const el = document.createElement('div'); el.className = 'scr';
   el.innerHTML = `<div class="bar"><b>${title}</b>${link ? `<a href="${link}" target="_blank" rel="noopener">abrir em nova aba ↗</a>` : ''}</div>${bodyHtml}`;
@@ -1319,19 +1588,55 @@ const frame = src => `<iframe src="${src}" allow="autoplay; encrypted-media; cli
 // Com a extensão "Escritório dos Agentes · telas" instalada no Chrome, cada tela é um navegador de verdade:
 // qualquer site abre (YouTube inteiro, Claude, Agenda...) com os logins que você já tem no Chrome.
 const APP = document.documentElement.dataset.escritorioExt === '1';
+// versão da extensão instalada no Chrome: a pasta nova só vale depois de recarregar a extensão em chrome://extensions
+const EXT_VERSAO = document.documentElement.dataset.escritorioExtVersao || '', EXT_MINIMA = '1.5.0';
+const versaoMaior = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return true; };
+const EXT_PONTE = APP && !!EXT_VERSAO && versaoMaior(EXT_VERSAO, EXT_MINIMA);
+// etiqueta da versão (canto de baixo) e teste das telas
+async function versaoDaPasta() { try { return (await (await fetch('extensao/manifest.json', { cache: 'no-store' })).json()).version || ''; } catch (e) { return ''; } }
+async function mostrarVersao() {
+  const el = document.getElementById('versaoTag'), pasta = await versaoDaPasta();
+  const ext = !APP ? 'sem extensão' : 'extensão ' + (EXT_VERSAO || 'antiga');
+  const ruim = !APP || !EXT_PONTE || (pasta && EXT_VERSAO && pasta !== EXT_VERSAO);
+  el.textContent = `escritório ${VERSAO} · ${ext}${ruim ? ' ⚠' : ''}`;
+  el.classList.toggle('ruim', !!ruim);
+  if (APP && pasta && EXT_VERSAO && pasta !== EXT_VERSAO && EXT_PONTE)
+    setTimeout(() => toast(`A extensão no Chrome (${escapeHtml(EXT_VERSAO)}) não é a desta pasta (${escapeHtml(pasta)}). Abra <b>chrome://extensions</b>, clique em <b>⟳</b> na extensão "Escritório dos Agentes · telas" e recarregue esta página (F5). Se continuar, remova a extensão e carregue de novo a pasta <b>${escapeHtml(window.ESCRITORIO_PASTA ? window.ESCRITORIO_PASTA + '\\extensao' : 'extensao do escritório')}</b>.`, 30000), 3000);
+}
+async function testarTelas() {
+  if (!APP) return toast('Sem a extensão do escritório, os agentes não conseguem usar as telas.', 10000);
+  toast('Testando as telas…', 20000);
+  const linhas = [];
+  for (const [key, b] of Object.entries(browsers)) {
+    if (!b.active) continue;
+    const t0 = performance.now(), r = await pedirTela(b.active, 'ler', '', 4000);
+    linhas.push(`${r.ok ? '✅' : '❌'} <b>${escapeHtml(b.title)}</b>: ${escapeHtml(b.active.title || hostOf(b.active.url))}${r.ok ? ` (${Math.round(performance.now() - t0)} ms)` : ' · ' + escapeHtml(r.mensagem || 'não respondeu')}`);
+  }
+  toast(linhas.join('<br>'), 30000);
+}
+document.getElementById('versaoTag').onclick = testarTelas;
+setTimeout(mostrarVersao, 1500);
+if (APP && !EXT_PONTE) setTimeout(() => toast(`A <b>extensão do escritório está desatualizada</b>${EXT_VERSAO ? ' (' + EXT_VERSAO + ')' : ''}: os agentes não conseguem ler as telas direito. Abra <b>chrome://extensions</b> e clique em <b>⟳ recarregar</b> na extensão "Escritório dos Agentes · telas" . Se continuar desatualizada, a extensão foi carregada de uma pasta antiga: clique em <b>Remover</b> e depois em <b>Carregar sem compactação</b>, escolhendo a pasta <b>${escapeHtml(window.ESCRITORIO_PASTA ? window.ESCRITORIO_PASTA + '\\extensao' : 'extensao (dentro da pasta do escritório)')}</b>. Depois, recarregue esta página (F5).`, 45000), 2500);
 // ajustes de visual por site, aplicados dentro das telas pela extensão
 const SITE_CSS = {
   // o claude.ai, dentro de outra página, desce a barra do caminho por cima do título e do botão "Executar agora"
   'claude.ai': '.mt-frame-row{padding-top:4.5rem!important}',
 };
 if (APP) {
-  const urlCbs = [], escCbs = [], openedLatest = {};
-  const postCmd = (name, m) => { const fr = document.querySelector(`iframe[name="${name}"]`); if (fr && fr.contentWindow) fr.contentWindow.postMessage(Object.assign({ esc: 'cmd' }, m), '*'); };
+  const escCbs = [], infoCbs = [], newTabCbs = [], tocandoCbs = [], respostaCbs = [], openedLatest = {};
+  // extensão 1.5 ou mais nova: as telas conversam pela ponte da extensão (funciona até no WhatsApp Web)
+  const postCmd = (name, m) => {
+    const msg = Object.assign({ esc: 'cmd' }, m);
+    if (EXT_PONTE) { window.postMessage({ esc: 'ponte-cmd', nome: name, m: msg }, location.origin); return; }
+    const fr = document.querySelector(`iframe[name="${name}"]`); if (fr && fr.contentWindow) fr.contentWindow.postMessage(msg, '*');
+  };
   addEventListener('message', e => {
     if (!e.data || e.data.esc !== 'tela') return;
-    const fr = [...document.querySelectorAll('iframe[name]')].find(f => f.contentWindow === e.source); if (!fr) return;
+    const fr = e.source === window && e.origin === location.origin && typeof e.data.nome === 'string'
+      ? document.querySelector(`iframe[name="${CSS.escape(e.data.nome)}"]`)
+      : [...document.querySelectorAll('iframe[name]')].find(f => f.contentWindow === e.source);
+    if (!fr) return;
     if (e.data.url) {
-      urlCbs.forEach(cb => cb(fr.name, e.data.url));
       const css = SITE_CSS[e.data.host];
       if (css) postCmd(fr.name, { cmd: 'css', v: css });
       // YouTube: a página de assistir se recusa a abrir dentro da tela; troca pelo player do YouTube (com tela cheia)
@@ -1343,6 +1648,14 @@ if (APP) {
         postCmd(fr.name, { cmd: 'click', v: 'li a[href^="/cowork/cse_"]' });
       }
     }
+    // endereço e título da página, para o nome da guia
+    if (e.data.url || typeof e.data.title === 'string') infoCbs.forEach(cb => cb(fr.name, e.data.url, e.data.title));
+    // link que abriria uma guia nova: abre uma guia no próprio PC (ou numa aba do Chrome, se a tela não tem guias)
+    if (typeof e.data.newTab === 'string' && /^https?:\/\//i.test(e.data.newTab)) {
+      if (!newTabCbs.some(cb => cb(fr.name, e.data.newTab, !!e.data.background))) window.open(e.data.newTab, '_blank', 'noopener');
+    }
+    if (typeof e.data.tocando === 'boolean') tocandoCbs.forEach(cb => cb(fr.name, e.data.tocando));
+    if (e.data.resposta && e.data.resposta.id) respostaCbs.forEach(cb => cb(e.data.resposta));
     if (e.data.key === 'Escape') escCbs.forEach(cb => cb());
     const vid = e.data.video && /\/embed\/([\w-]{11})\?/.exec(e.data.video);
     if (vid) fr.src = '/yt.html?v=' + vid[1];
@@ -1351,7 +1664,12 @@ if (APP) {
     isApp: true,
     nav: (name, cmd) => postCmd(name, { cmd }),
     volume: (name, v) => postCmd(name, { cmd: 'volume', v }),
-    onFrameUrl: cb => urlCbs.push(cb),
+    onFrameInfo: cb => infoCbs.push(cb),
+    onNewTab: cb => newTabCbs.push(cb),
+    onTocando: cb => tocandoCbs.push(cb),
+    pause: name => postCmd(name, { cmd: 'pause' }),
+    cmd: (name, m) => postCmd(name, m),
+    onResposta: cb => respostaCbs.push(cb),
     onEsc: cb => escCbs.push(cb),
   };
 }
@@ -1361,31 +1679,119 @@ const extReady = () => new Promise(res => {
   const t = setTimeout(res, 2000);
   addEventListener('message', e => { if (e.data && e.data.esc === 'ext-pronta') { clearTimeout(t); res(); } });
 });
-const frameAddr = {};
-function browserEl(name, title, home, search) {
-  const el = document.createElement('div'); el.className = 'scr';
-  el.innerHTML = `<div class="bar nav">
+const GOOGLE = 'https://www.google.com/search?q=';
+const FRAME_ALLOW = 'autoplay; encrypted-media; clipboard-read; clipboard-write; fullscreen; microphone; camera; picture-in-picture';
+
+// Todas as telas (PCs, TV e Spotify) são um Chrome com guias: cada guia é um iframe próprio (só a ativa aparece,
+// as outras continuam abertas e tocando). As guias de cada tela ficam salvas e voltam quando o escritório abre de novo.
+const MAX_TABS = 8;
+const tabOf = {}; // nome do iframe -> { b, tab }
+const browsers = {}; // tela -> navegador
+let tabSeq = 0;
+const hostOf = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
+function tabbedBrowserEl(key, title, home, search) {
+  const el = document.createElement('div'); el.className = 'scr chrome';
+  el.innerHTML = `<div class="tabs"><div class="tablist" role="tablist"></div><button class="newtab" title="Nova guia">+</button><b>${title}</b></div>
+    <div class="bar nav">
       <button data-n="back" title="Voltar">◀</button><button data-n="forward" title="Avançar">▶</button>
       <button data-n="reload" title="Recarregar">⟳</button><button data-n="home" title="Início">⌂</button>
-      <input class="addr" value="${escapeHtml(home)}" spellcheck="false"><b>${title}</b></div>
-    <iframe name="${name}" src="${escapeHtml(home)}" allow="autoplay; encrypted-media; clipboard-read; clipboard-write; fullscreen; microphone; camera; picture-in-picture"></iframe>`;
-  const fr = el.querySelector('iframe'), addr = el.querySelector('.addr');
-  el.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
-    if (b.dataset.n === 'home') fr.src = home;
-    else escritorioApp.nav(name, b.dataset.n);
+      <button data-n="fora" title="Abrir esta guia numa aba do Chrome de verdade (para sites que não funcionam dentro da tela)">↗</button>
+      <input class="addr" spellcheck="false" placeholder="Pesquise no Google ou digite um endereço"></div>
+    <div class="pages"></div>`;
+  const b = browsers[key] = { key, title, home, search, vol: null, tabs: [], active: null, list: el.querySelector('.tablist'), pages: el.querySelector('.pages'), addr: el.querySelector('.addr') };
+  el.querySelector('.newtab').onclick = () => { addTab(b, home); b.addr.focus(); };
+  el.querySelectorAll('[data-n]').forEach(btn => btn.onclick = () => {
+    const t = b.active; if (!t) return;
+    if (btn.dataset.n === 'home') goTab(t, home);
+    else if (btn.dataset.n === 'fora') window.open(t.url, '_blank', 'noopener');
+    else escritorioApp.nav(t.name, btn.dataset.n);
   });
-  addr.addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
-    let v = addr.value.trim(); if (!v) return;
+  b.addr.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || !b.active) return;
+    let v = b.addr.value.trim(); if (!v) return;
+    // páginas internas do Chrome não abrem dentro das telas: explica onde digitar
+    if (/^(chrome|edge|brave|about|chrome-extension):/i.test(v)) {
+      b.addr.value = b.active.url; b.addr.blur();
+      toast(`<b>${escapeHtml(v)}</b> só abre na barra de endereço do próprio Chrome: aperte <b>Ctrl+T</b> (aba nova, fora do escritório) e digite lá em cima.`, 15000);
+      return;
+    }
     if (!/^https?:\/\//i.test(v)) v = /^[^\s]+\.[^\s]{2,}$/.test(v) ? 'https://' + v : search + encodeURIComponent(v);
-    fr.src = v; addr.blur();
+    goTab(b.active, v); b.addr.blur();
   });
-  addr.addEventListener('focus', () => addr.select());
-  frameAddr[name] = addr;
+  b.addr.addEventListener('focus', () => b.addr.select());
+  let saved = null;
+  try { saved = JSON.parse(loadPref('abas.' + key, 'null')); } catch (e) {}
+  const urls = saved && Array.isArray(saved.urls) ? saved.urls.filter(u => /^https?:\/\//i.test(u)).slice(0, MAX_TABS) : [];
+  if (!urls.length) urls.push(home);
+  urls.forEach(u => addTab(b, u, false));
+  activateTab(b, b.tabs[Math.min(Math.max(+(saved && saved.active) || 0, 0), b.tabs.length - 1)]);
   return el;
 }
-if (APP) escritorioApp.onFrameUrl((name, url) => { const a = frameAddr[name]; if (a && document.activeElement !== a) a.value = url; });
-const GOOGLE = 'https://www.google.com/search?q=';
+function addTab(b, url, activate = true) {
+  // no limite de guias, o link abre na guia atual
+  if (b.tabs.length >= MAX_TABS) { if (b.active) goTab(b.active, url); return b.active; }
+  const name = `${b.key}-t${++tabSeq}`;
+  const fr = document.createElement('iframe');
+  fr.name = name; fr.allow = FRAME_ALLOW; fr.src = url;
+  const btn = document.createElement('div'); btn.className = 'tab'; btn.setAttribute('role', 'tab');
+  btn.innerHTML = '<img alt=""><span></span><i class="som" hidden title="Esta guia está tocando som">🔊</i><button class="x" title="Fechar guia">×</button>';
+  const tab = { name, url, title: '', fr, btn };
+  btn.onclick = () => activateTab(b, tab);
+  btn.querySelector('.x').onclick = e => { e.stopPropagation(); closeTab(b, tab); };
+  btn.addEventListener('auxclick', e => { if (e.button === 1) { e.preventDefault(); closeTab(b, tab); } });
+  btn.querySelector('img').onerror = e => { e.target.style.visibility = 'hidden'; };
+  // a guia nova fica logo depois da atual, como no Chrome
+  const at = b.active ? b.tabs.indexOf(b.active) + 1 : b.tabs.length;
+  b.tabs.splice(at, 0, tab);
+  b.list.insertBefore(btn, b.list.children[at] || null);
+  b.pages.appendChild(fr);
+  tabOf[name] = { b, tab };
+  labelTab(tab);
+  if (activate) activateTab(b, tab); else saveTabs(b);
+  return tab;
+}
+function activateTab(b, tab) {
+  b.active = tab;
+  b.tabs.forEach(t => { const on = t === tab; t.btn.classList.toggle('on', on); t.btn.setAttribute('aria-selected', on); t.fr.classList.toggle('on', on); });
+  if (document.activeElement !== b.addr) b.addr.value = tab.url;
+  saveTabs(b);
+}
+function closeTab(b, tab) {
+  const i = b.tabs.indexOf(tab); if (i < 0) return;
+  b.tabs.splice(i, 1); tab.btn.remove(); tab.fr.remove(); delete tabOf[tab.name];
+  if (tab.tocando) { tab.tocando = false; renderSoundBtn(); renderMix(); }
+  if (!b.tabs.length) { b.active = null; addTab(b, b.home); return; }
+  if (b.active === tab) activateTab(b, b.tabs[Math.min(i, b.tabs.length - 1)]); else saveTabs(b);
+}
+function goTab(tab, url) { tab.url = url; tab.title = ''; tab.fr.src = url; labelTab(tab); const o = tabOf[tab.name]; if (o) activateTab(o.b, tab); }
+function labelTab(tab) {
+  const host = hostOf(tab.url), label = tab.title || host || 'Nova guia';
+  tab.btn.querySelector('span').textContent = label; tab.btn.title = label;
+  const img = tab.btn.querySelector('img'), src = host ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32` : '';
+  if (img.getAttribute('src') !== src) { img.style.visibility = ''; if (src) img.src = src; else img.removeAttribute('src'); }
+}
+function saveTabs(b) { savePref('abas.' + b.key, JSON.stringify({ urls: b.tabs.map(t => t.url), active: b.tabs.indexOf(b.active) })); }
+if (APP) {
+  escritorioApp.onFrameInfo((name, url, title) => {
+    const o = tabOf[name]; if (!o) return;
+    const { b, tab } = o;
+    if (url && url !== tab.url) { tab.url = url; if (title == null) tab.title = ''; }
+    if (url && b.vol != null) escritorioApp.volume(name, b.vol);
+    if (typeof title === 'string') tab.title = title.trim();
+    labelTab(tab);
+    if (b.active === tab && document.activeElement !== b.addr) b.addr.value = tab.url;
+    saveTabs(b);
+  });
+  escritorioApp.onNewTab((name, url, background) => {
+    const o = tabOf[name]; if (!o) return false;
+    addTab(o.b, url, !background);
+    return true;
+  });
+}
+// editor de vídeo da Carla (Abekyo); o instalar.bat grava o endereço em escritorio-config.js
+const ABEKYO = window.ESCRITORIO_ABEKYO || 'http://localhost:3000';
+// versão dos agentes que esta pasta espera no n8n (o gerador dos fluxos atualiza este número)
+const VERSAO = '2026.10.24-painel';
 function buildApp() {
   const sheet = `https://docs.google.com/spreadsheets/d/${MEDIA.leadsSheet}/edit`;
   const cantinho = loadPref('cantinhoUrl', '');
@@ -1393,18 +1799,36 @@ function buildApp() {
     // cada PC abre direto na sua tarefa agendada do Claude
     ['PC 1 · Relatório diário', 'https://claude.ai/scheduled-task/trig_01RSLEJeCEcp9D76gRZxeknt', GOOGLE],
     ['PC 2 · Relatório semanal', 'https://claude.ai/scheduled-task/trig_01YKtdXF71qzZUCosWJ64Ghm', GOOGLE],
-    ['PC 3 · Alerta de leads', 'https://claude.ai/scheduled-task/trig_017E6eYzRiJe6orTgvKpSGLd', GOOGLE],
+    ['PC 3 · Carla · Editor de vídeo', ABEKYO, GOOGLE],
     ['PC 4 · Agenda', 'https://calendar.google.com/calendar/r/agenda', GOOGLE],
     ['PC 5 · Agenda da semana', 'https://calendar.google.com/calendar/r/week', GOOGLE],
-    ['PC 6 · Cantinho do Au Au', cantinho, GOOGLE],
+    ['PC 6 · Cantinho do Au Au', cantinho || 'https://www.google.com/', GOOGLE],
   ];
   pcs.forEach(pc => {
     const [title, home, search] = homes[pc.i];
-    addScreen('pc' + pc.i, pc.screen, 1600, home ? browserEl('pc' + pc.i, title, home, search) : cantinhoEl());
+    addScreen('pc' + pc.i, pc.screen, 1600, tabbedBrowserEl('pc' + pc.i, title, home, search));
     pc.icon.visible = false; pc.badge = null;
   });
-  addScreen('tv', tvMesh, 1600, browserEl('tv', 'TV · YouTube', 'https://www.youtube.com', 'https://www.youtube.com/results?search_query='));
-  addScreen('spotify', spMesh, 560, browserEl('spotify', 'Spotify', 'https://open.spotify.com', 'https://open.spotify.com/search/'));
+  addScreen('tv', tvMesh, 1600, tabbedBrowserEl('tv', 'TV · YouTube', 'https://www.youtube.com', 'https://www.youtube.com/results?search_query='));
+  // o Spotify precisa de largura de computador para mostrar o player completo
+  addScreen('spotify', spMesh, 1000, tabbedBrowserEl('spotify', 'Spotify', 'https://open.spotify.com', 'https://open.spotify.com/search/'));
+  addScreen('painel', painelMesh, 1200, painelEl());
+  // uma vez: o PC da Carla ganha a guia do editor de vídeo (as guias salvas antes continuam lá)
+  if (!loadPref('carlaEditor', '') && browsers.pc2 && !browsers.pc2.tabs.some(t => t.url.startsWith(ABEKYO))) addTab(browsers.pc2, ABEKYO);
+  savePref('carlaEditor', '1');
+  // uma vez: o PC 1 ganha a guia do painel da Evolution (o WhatsApp comercial que a Ana lê)
+  const evo = window.ESCRITORIO_EVOLUTION;
+  if (evo && !loadPref('evolutionPainel', '') && browsers.pc0) {
+    if (!browsers.pc0.tabs.some(t => t.url.startsWith(evo.url))) addTab(browsers.pc0, evo.url + '/manager');
+    savePref('evolutionPainel', '1');
+    toast(`O <b>PC 1</b> ganhou o painel da <b>Evolution</b> (WhatsApp comercial). Para entrar: Server URL <b>${escapeHtml(evo.url)}</b> e API Key <b>${escapeHtml(evo.chave)}</b> (também está no arquivo whatsapp-evolution.txt da pasta).`, 30000);
+  }
+  conferirAbekyo();
+}
+// o editor de vídeo é um servidor deste PC (abekyo-editor, "npm run dev"); desligado, a guia dele fica com a tela quebrada
+async function conferirAbekyo() {
+  try { await fetch(ABEKYO, { mode: 'no-cors', cache: 'no-store' }); }
+  catch (e) { toast('O <b>editor de vídeo da Carla</b> (PC 3) está desligado. Abra pelo <b>abrir-escritorio.bat</b> (ele liga o editor) ou, na pasta do abekyo-editor, rode <b>npm run dev</b>.'); }
 }
 
 function buildEmbeds() {
@@ -1426,6 +1850,7 @@ function buildEmbeds() {
   });
   addScreen('tv', tvMesh, 1600, tvEl());
   addScreen('spotify', spMesh, 560, spotifyEl());
+  addScreen('painel', painelMesh, 1200, painelEl());
   resize();
 }
 const TAREFAS_LOCAL = {
@@ -1669,7 +2094,7 @@ function startAudio() {
   if (listener) { if (listener.context.state === 'suspended') listener.context.resume(); return; }
   listener = new THREE.AudioListener(); camera.add(listener);
   const ctx = listener.context;
-  const hum = new THREE.Audio(listener); hum.setBuffer(noiseBuffer(ctx, 3, true)); hum.setLoop(true); hum.setVolume(0.06); hum.play();
+  const hum = new THREE.Audio(listener); hum.setBuffer(noiseBuffer(ctx, 3, true)); hum.setLoop(true); hum.setVolume(0.06 * mix.amb.ar); hum.play();
   const typing = typingBuffer(ctx);
   const deskSounds = screens.map((s, i) => {
     const pa = new THREE.PositionalAudio(listener);
@@ -1677,43 +2102,49 @@ function startAudio() {
     pa.offset = Math.random() * 3; pa.play(); s.add(pa); return pa;
   });
   const coffee = new THREE.PositionalAudio(listener);
-  coffee.setBuffer(noiseBuffer(ctx, 2, true)); coffee.setLoop(true); coffee.setRefDistance(0.8); coffee.setRolloffFactor(2.5); coffee.setVolume(0.5); coffee.play();
+  coffee.setBuffer(noiseBuffer(ctx, 2, true)); coffee.setLoop(true); coffee.setRefDistance(0.8); coffee.setRolloffFactor(2.5); coffee.setVolume(0.5 * mix.amb.cafe); coffee.play();
   const cm = new THREE.Object3D(); cm.position.set(7.4, 1.3, 6.45); scene.add(cm); cm.add(coffee);
-  ambient = { deskSounds };
-  listener.setMasterVolume(soundOn ? 1 : 0);
+  ambient = { deskSounds, hum, coffee };
+  listener.setMasterVolume(soundOn ? mix.geral : 0);
 }
 function updateAudio() {
   if (!listener) return;
   agents.forEach(a => {
     const i = deskSpots.indexOf(a.desk), pa = ambient.deskSounds[i];
-    if (pa) pa.setVolume(a.status === 'working' && !a.path.length ? 0.9 : 0);
+    if (pa) pa.setVolume(a.status === 'working' && !a.path.length ? 0.9 * mix.amb.teclado : 0);
   });
-  if (APP) { // no app, o volume dos vídeos e músicas dentro das telas é ajustado direto na página
-    const dSp = Math.min(...speakerPos.map(p => camera.position.distanceTo(p))), dTv = camera.position.distanceTo(tvMesh.position);
-    const vTv = !soundOn ? 0 : focusRef && focusRef.key === 'tv' ? 1 : Math.min(1, 1.6 / Math.max(1.6, dTv)) ** 1.2;
-    const vSp = !soundOn ? 0 : focusRef && focusRef.key === 'spotify' ? 0.8 : Math.min(1, 2 / Math.max(2, dSp)) ** 1.3;
-    if (Math.abs(vTv - (appVol.tv ?? -1)) > 0.02) { appVol.tv = vTv; escritorioApp.volume('tv', vTv); }
-    if (Math.abs(vSp - (appVol.spotify ?? -1)) > 0.02) { appVol.spotify = vSp; escritorioApp.volume('spotify', vSp); }
+  ambient.hum.setVolume(0.06 * mix.amb.ar); ambient.coffee.setVolume(0.5 * mix.amb.cafe);
+  // volume de cada tela = jeito de misturar (distância, fixo ou só a tela em uso) × volume da tela na mesa de som × volume geral
+  const telaVol = (key, base) => { const m = telaMix(key); return !soundOn || m.mudo ? 0 : base * m.vol * mix.geral; };
+  const baseDe = (f, perto) => focusRef === f ? 1 : mix.modo === 'foco' && focusRef ? 0 : mix.modo === 'fixo' ? 1 : perto();
+  if (APP) { // no app, o volume dos vídeos e músicas dentro das telas é ajustado direto na página, em todas as guias
+    const pos = new THREE.Vector3();
+    focusables.forEach(f => {
+      const b = browsers[f.key]; if (!b) return;
+      const v = telaVol(f.key, baseDe(f, () => {
+        if (f.key === 'spotify') return Math.min(1, 2 / Math.max(2, Math.min(...speakerPos.map(p => camera.position.distanceTo(p))))) ** 1.3;
+        f.mesh.getWorldPosition(pos); const r = f.key === 'tv' ? 1.6 : 1.2;
+        return Math.min(1, r / Math.max(r, camera.position.distanceTo(pos))) ** (f.key === 'tv' ? 1.2 : 1.4);
+      })) * (f.key === 'spotify' && focusRef === f ? 0.8 : 1);
+      if (Math.abs(v - (appVol[f.key] ?? -1)) <= 0.02) return;
+      appVol[f.key] = b.vol = v;
+      b.tabs.forEach(t => escritorioApp.volume(t.name, v));
+    });
     return;
   }
   // a caixa de som do Spotify: volume pela distância até a caixa mais próxima
   if (sp.player && sp.deviceId) {
-    const d = Math.min(...speakerPos.map(p => camera.position.distanceTo(p)));
-    const v = !soundOn ? 0 : focusRef && focusRef.key === 'spotify' ? 0.8 : Math.max(0, Math.min(1, 2 / Math.max(2, d))) ** 1.3;
+    const d = Math.min(...speakerPos.map(p => camera.position.distanceTo(p))), f = focusables.find(x => x.key === 'spotify');
+    const v = telaVol('spotify', baseDe(f, () => Math.max(0, Math.min(1, 2 / Math.max(2, d))) ** 1.3)) * (focusRef === f ? 0.8 : 1);
     if (Math.abs(v - sp.vol) > 0.02) { sp.vol = v; sp.player.setVolume(v).catch(() => {}); }
   }
   // a TV fica mais alta de perto e baixa de longe
   if (ytReady && ytPlayer.setVolume) {
-    const d = camera.position.distanceTo(tvMesh.position);
-    const vol = focusRef && focusRef.key === 'tv' ? 100 : Math.round(100 * Math.max(0, Math.min(1, 1.6 / Math.max(1.6, d))) ** 1.2);
-    if (!soundOn) ytPlayer.mute(); else { if (ytPlayer.isMuted()) ytPlayer.unMute(); ytPlayer.setVolume(vol); }
+    const d = camera.position.distanceTo(tvMesh.position), f = focusables.find(x => x.key === 'tv');
+    const vol = Math.round(100 * telaVol('tv', baseDe(f, () => Math.max(0, Math.min(1, 1.6 / Math.max(1.6, d))) ** 1.2)));
+    if (!vol) ytPlayer.mute(); else { if (ytPlayer.isMuted()) ytPlayer.unMute(); ytPlayer.setVolume(vol); }
   }
 }
-document.getElementById('soundBtn').onclick = () => {
-  soundOn = !soundOn;
-  document.getElementById('soundBtn').textContent = 'Som: ' + (soundOn ? 'ligado' : 'desligado');
-  startAudio(); listener.setMasterVolume(soundOn ? 1 : 0); updateAudio();
-};
 addEventListener('pointerdown', startAudio, { once: true });
 addEventListener('keydown', startAudio, { once: true });
 
@@ -1786,6 +2217,662 @@ function focusByMesh(mesh) { const f = focusables.find(x => x.mesh === mesh); if
 if (EMBED) extReady().then(() => { buildEmbeds(); if (!APP) { startYouTube(); spBoot(); } });
 if (APP && escritorioApp.onEsc) escritorioApp.onEsc(() => { if (focusRef) unfocus(); });
 
+// ================= agentes de verdade (n8n do PC) =================
+// Cada agente de verdade é um fluxo no n8n (pasta n8n/ do projeto). A cada 3 s o escritório pergunta ao fluxo
+// "Escritório · Central" o que cada um está fazendo e mexe os bonecos; os pedidos vão direto para o webhook do agente.
+// Quem ainda não tem fluxo continua simulado.
+const agWin = document.getElementById('agWin'), agInfo = document.getElementById('agInfo'), agMsgs = document.getElementById('agMsgs');
+const agIn = document.getElementById('agIn'), agForm = document.getElementById('agForm'), n8nBtn = document.getElementById('n8nBtn');
+const N8N = { url: loadPref('n8nUrl', window.ESCRITORIO_N8N || 'http://localhost:5678'), on: false, falhas: 0, primeira: true, erro: '' };
+const n8nBase = () => N8N.url.replace(/\/+$/, '');
+const QUEM = Object.fromEntries(TEAM.map(t => [t.id, t.name])); QUEM.wes = 'Você';
+const AG_DICA = {
+  fabio: 'Peça qualquer coisa ao Fábio: ele responde e passa as tarefas para quem da equipe pode fazer.',
+  ana: 'Peça, por exemplo: “quem está esperando resposta no WhatsApp?” ou “resuma a primeira conversa do WhatsApp aberto no PC 2”. A Ana só lê e sugere as mensagens: quem envia é a Mari.',
+  carla: 'Peça, por exemplo: “carrossel sobre o primeiro dia na creche” ou “vídeo de 15 segundos sobre o hotel”. Ela monta e renderiza no editor aberto no PC 3, e você pode pedir ajustes ou editar lá mesmo.',
+};
+let openAgentRef = null;
+
+function renderN8nBtn() {
+  const reais = agents.filter(a => a.real).map(a => a.name);
+  const lista = reais.length > 1 ? reais.slice(0, -1).join(', ') + ' e ' + reais[reais.length - 1] : reais[0] || 'nenhum';
+  n8nBtn.textContent = !N8N.on ? 'Agentes: simulados (n8n desligado)' : N8N.velho ? 'Agentes: desatualizados (rode o instalar.bat)' : `Agentes: ${lista} de verdade`;
+}
+function setN8n(on) {
+  if (on === N8N.on) return;
+  N8N.on = on;
+  if (!on) { // sem n8n, a equipe volta a ser simulada, o kanban mostra as tarefas simuladas e o mural fica só neste navegador
+    agents.forEach(a => { if (a.real) { a.real = false; a.timer = 1; drawLabel(a); } });
+    kanbanData = muralData = null; N8N.kan = N8N.mur = undefined; drawQuadro(); drawMural();
+    if (!kanWin.hidden) renderKanban();
+    if (!muralWin.hidden) renderMural();
+  }
+  renderN8nBtn(); renderList();
+  if (openAgentRef) renderAgent();
+}
+async function pollN8n() {
+  try {
+    const r = await fetch(n8nBase() + '/webhook/escritorio/estado', { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status === 404 ? 'o fluxo Central não está ativo (404)' : 'HTTP ' + r.status);
+    applyEstado(await r.json());
+    N8N.falhas = 0; N8N.erro = ''; setN8n(true);
+  } catch (e) {
+    N8N.erro = String(e && e.message || e);
+    if (++N8N.falhas >= 2) setN8n(false);
+  }
+  clearTimeout(N8N.timer); N8N.timer = setTimeout(pollN8n, document.hidden ? 15000 : agents.some(a => a.real && a.task) ? 700 : 2500);
+}
+const pollSoon = () => { clearTimeout(N8N.timer); N8N.timer = setTimeout(pollN8n, 300); };
+// manda um formulário para um webhook do escritório no n8n (formulário simples dispensa a licença de CORS)
+async function n8nPost(caminho, campos) {
+  const r = await fetch(`${n8nBase()}/webhook/escritorio/${caminho}`, { method: 'POST', body: new URLSearchParams(campos) });
+  if (!r.ok) throw new Error(r.status === 404 ? 'o fluxo não está ativo no n8n (404)' : 'HTTP ' + r.status);
+  pollSoon();
+}
+function applyEstado(est) {
+  const ativos = new Set(est.ativos || []), estados = est.agentes || {}, conversas = est.conversas || {};
+  agents.forEach(a => {
+    const real = ativos.has(a.id);
+    if (real !== !!a.real) {
+      a.real = real; drawLabel(a);
+      if (real) { a.timer = Infinity; log(a, 'virou agente de verdade (n8n)'); if (!estados[a.id]) remoteStatus(a, { status: 'livre' }, false); }
+      else a.timer = 1;
+    }
+    a.conversa = conversas[a.id] || [];
+    const s = estados[a.id];
+    const rev = s && `${s.atualizado}#${s.rev || ''}`;
+    if (s && rev !== a.remoteAt) { a.remoteAt = rev; remoteStatus(a, s, !N8N.primeira); }
+    const ult = a.conversa[a.conversa.length - 1];
+    if (ult && ult.de === a.id && ult.t !== a.ultMsg) {
+      const novo = a.ultMsg !== undefined; a.ultMsg = ult.t;
+      if (novo && ult.texto !== a.resultado && openAgentRef !== a) { log(a, 'mandou um aviso'); toast(`<b>${a.name}:</b> ${escapeHtml(semMd(ult.texto).slice(0, 220))}${semMd(ult.texto).length > 220 ? '…' : ''}`); }
+    }
+  });
+  N8N.primeira = false;
+  // fluxos do n8n de outra versão: avisa uma vez (o abrir-escritorio.bat reinstala sozinho)
+  const velho = !!VERSAO && est.versao !== VERSAO;
+  if (velho && !N8N.velho) toast('Os <b>agentes no n8n estão desatualizados</b> (por isso podem falhar). Feche e abra pelo <b>abrir-escritorio.bat</b>: ele atualiza sozinho. Ou rode o <b>instalar.bat</b>.');
+  N8N.velho = velho;
+  (est.comandos || []).forEach(c => {
+    if (comandosFeitos.has(c.id)) return;
+    comandosFeitos.add(c.id);
+    const k = (acharTela(c.tela, agById(c.agente)) || {}).key || '?';
+    filaTelas[k] = (filaTelas[k] || Promise.resolve()).then(() => executarComando(c));
+  });
+  renderN8nBtn();
+  if (openAgentRef) renderAgent();
+  N8N.memorias = est.memorias || [];
+  const kan = JSON.stringify(est.tarefas || []), mur = JSON.stringify(est.mural || []);
+  if (kan !== N8N.kan) { N8N.kan = kan; kanbanData = est.tarefas || []; drawQuadro(); if (!kanWin.hidden) renderKanban(); }
+  if (mur !== N8N.mur) { N8N.mur = mur; muralData = est.mural || []; drawMural(); if (!muralWin.hidden) renderMural(); }
+}
+// novo = aconteceu agora (na primeira leitura só arruma os bonecos, sem avisos)
+function remoteStatus(a, s, novo) {
+  if (s.resultado !== undefined) a.resultado = s.resultado || '';
+  if (s.status === 'trabalhando') {
+    if (novo || a.task !== (s.tarefa || 'Trabalhando')) a.passos = [];
+    a.task = s.tarefa || 'Trabalhando';
+    if (novo) log(a, `começou: “${a.task}”`);
+    if (a.real && !(a.spot === a.desk && (a.status === 'working' || a.status === 'walking'))) goTo(a, a.desk, 'working', Infinity);
+    else if (a.real) setStatus(a, a.status);
+  } else if (s.status === 'aguardando') {
+    // tarefa passada para quem ainda não tem fluxo: fica guardada, e o boneco simulado trabalha nela
+    if (novo) { log(a, `recebeu do Fábio: “${s.tarefa}” (ainda sem função)`); if (!a.real) giveTask(a, s.tarefa); }
+  } else if (s.status === 'livre' || s.status === 'erro') {
+    const err = s.status === 'erro';
+    a.task = null;
+    if (novo) {
+      log(a, err ? 'deu erro' : 'terminou');
+      if (openAgentRef !== a) toast(`<b>${a.name}</b> ${err ? 'teve um problema' : 'terminou'} · clique no boneco para ver<br>${escapeHtml(semMd(a.resultado).slice(0, 140))}${semMd(a.resultado).length > 140 ? '…' : ''}`);
+    }
+    if (a.real) {
+      const st = err ? 'error' : 'idle';
+      if (a.spot && breakSpots.includes(a.spot)) {
+        // já está na pausa ou a caminho dela: o status novo vale quando chegar
+        if (a.status === 'walking' && a.next) a.next.status = st; else setStatus(a, st);
+      } else { const spot = freeSpot(breakSpots); if (spot) goTo(a, spot, st, Infinity); else setStatus(a, st); }
+    }
+  }
+}
+
+// ================= os agentes usando as telas =================
+// O escritório conta ao n8n o que está aberto em cada tela (mapa). Quando um agente usa a ferramenta usar_tela,
+// o comando chega junto com o estado; aqui o boneco vai até a tela, a extensão faz a ação dentro dela
+// (ler, clicar, rolar, digitar) e o resultado volta para o agente.
+let comandosFeitos = new Set(), filaTelas = {};
+const semAcento = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const esperar = ms => new Promise(r => setTimeout(r, ms));
+function mapaTelas() {
+  return focusables.filter(f => browsers[f.key]).map(f => {
+    const b = browsers[f.key], m = /^pc(\d)$/.exec(f.key), dono = m ? agents[+m[1]] : null;
+    return { tela: f.key, nome: b.title, mesa: dono ? dono.name : '', conteudo: b.conteudo || '',
+      guias: b.tabs.map((t, j) => ({ n: j + 1, titulo: String(t.title || '').slice(0, 120), url: String(t.url || '').slice(0, 300), ativa: t === b.active, tocando: !!t.tocando })) };
+  });
+}
+async function publicarMapa() {
+  if (!N8N.on || !APP) return;
+  const m = JSON.stringify(mapaTelas());
+  if (m === N8N.mapa && Date.now() - (N8N.mapaT || 0) < 60000) return;
+  try {
+    const r = await fetch(`${n8nBase()}/webhook/escritorio/mapa`, { method: 'POST', body: new URLSearchParams({ mapa: m }) });
+    if (r.ok) { N8N.mapa = m; N8N.mapaT = Date.now(); }
+  } catch (e) {}
+}
+setInterval(publicarMapa, 2500);
+// lê o que está na frente de cada tela a cada ~6 s: assim qualquer agente responde "o que tem naquela tela" sem precisar clicar
+async function lerTodasAsTelas() {
+  if (N8N.on && APP) for (const b of Object.values(browsers)) {
+    if (!b.active) continue;
+    const r = await pedirTela(b.active, 'ler', '', 3000);
+    b.conteudo = r.ok ? String(r.texto || '').slice(0, 2000) : '';
+  }
+  setTimeout(lerTodasAsTelas, 6000);
+}
+setTimeout(lerTodasAsTelas, 4000);
+// "pc1" é a tela; "PC 2" e "2" são o número que aparece no escritório; fora isso, procura pelo site ou título aberto
+function acharTela(nome, a) {
+  const q = semAcento(nome).replace(/\s+/g, ' ');
+  // "meu pc", "minha tela", "meu computador": o PC da mesa do agente
+  if (a && /^(o\s+)?(meu|minha|my)\b/.test(q)) { const i = agents.indexOf(a); if (i >= 0 && browsers['pc' + i]) return { key: 'pc' + i }; }
+  const num = /^pc\s+(\d)$/.exec(q) || /^(\d)$/.exec(q);  // "PC 2" ou "2": o número que aparece no escritório
+  if (num && browsers['pc' + (num[1] - 1)]) return { key: 'pc' + (num[1] - 1) };
+  if (browsers[q]) return { key: q };  // pc0…pc5, tv, spotify
+  if (/^(a\s+)?tv|televis/.test(q)) return { key: 'tv' };
+  if (/spotify|caixa de som/.test(q)) return { key: 'spotify' };
+  const palavra = q.replace(/^(o|a)\s+/, '').replace(/^pc (com|do|da) (o |a )?/, '');
+  for (const [key, b] of Object.entries(browsers)) {
+    const ordem = [b.active, ...b.tabs.filter(t => t !== b.active)];
+    const t = ordem.find(x => x && (semAcento(x.title).includes(palavra) || semAcento(x.url).includes(palavra.replace(/\s/g, ''))));
+    if (t) return { key, tab: t };
+  }
+  return null;
+}
+const ultimoUso = {};
+function irAteTela(a, key) {
+  const f = focusables.find(x => x.key === key); if (!a || !f) return;
+  const pos = new THREE.Vector3(), q = new THREE.Quaternion();
+  f.mesh.getWorldPosition(pos); f.mesh.getWorldQuaternion(q);
+  const n = new THREE.Vector3(0, 0, 1).applyQuaternion(q), lado = new THREE.Vector3(n.z, 0, -n.x);
+  const longe = key.startsWith('pc') ? 0.95 : 1.4, desvio = key.startsWith('pc') ? 0.65 : 0;
+  const x = pos.x + n.x * longe + lado.x * desvio, z = pos.z + n.z * longe + lado.z * desvio;
+  const spot = { x, z, entryX: x, face: Math.atan2(-n.x, -n.z), tela: key };
+  if (a.spot && a.spot.tela === key) return;
+  log(a, `foi usar ${browsers[key].title}`);
+  goTo(a, spot, 'using', Infinity);
+}
+function destacarTela(key, a) {
+  const f = focusables.find(x => x.key === key); if (!f) return;
+  const ag = TEAM.find(t => t.id === (a && a.id)) || { name: 'Agente', color: '#c78ae6' };
+  f.el.style.setProperty('--c', ag.color); f.el.classList.add('usando');
+  let tag = f.el.querySelector('.usando-tag');
+  if (!tag) { tag = document.createElement('div'); tag.className = 'usando-tag'; f.el.appendChild(tag); }
+  tag.textContent = `${ag.name} usando`;
+  clearTimeout(f.usandoT); f.usandoT = setTimeout(() => { f.el.classList.remove('usando'); tag.remove(); }, 9000);
+}
+const pendentesTela = {};
+if (APP) escritorioApp.onResposta(r => { const cb = pendentesTela[r.id]; if (cb) cb(r); });
+function pedirTela(tab, cmd, v, ms = 7000, extra = {}) {
+  return new Promise(res => {
+    const id = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const t = setTimeout(() => { delete pendentesTela[id]; res({ ok: false, mensagem: EXT_PONTE ? 'a tela não respondeu (a página ainda está carregando; tente recarregar a guia)' : 'a tela não respondeu: a extensão do escritório está desatualizada (recarregue em chrome://extensions)' }); }, ms);
+    pendentesTela[id] = r => { clearTimeout(t); delete pendentesTela[id]; res(r); };
+    escritorioApp.cmd(tab.name, Object.assign({ cmd, v, id }, extra));
+  });
+}
+const ROTULO = { ler: 'lendo', clicar: 'clicando em', rolar: 'rolando', abrir: 'abrindo', guia: 'trocando de guia em', voltar: 'voltando em',
+  digitar: 'digitando em', perguntar: 'perguntando à IA de', esperar: 'esperando em', enviar: 'enviando por' };
+async function executarComando(c) {
+  const a = agById(c.agente), acao = semAcento(c.acao), alvo = String(c.alvo || '');
+  // passo ao vivo no chat do agente: o Wes vê o que ele está fazendo enquanto trabalha
+  const achada = acharTela(c.tela, a), nomeTela = achada && browsers[achada.key] ? browsers[achada.key].title : c.tela;
+  const passo = { t: Date.now(), txt: `${ROTULO[acao] || acao} ${nomeTela}${alvo && acao !== 'ler' ? ` · ${alvo.slice(0, 90)}` : ''}`, ok: null };
+  if (a) { a.passos = (a.passos || []).concat(passo).slice(-6); if (openAgentRef === a) renderAgent(); }
+  let texto;
+  try { texto = await usarTela(a, c.tela, acao, alvo); }
+  catch (e) { texto = 'Deu erro ao usar a tela: ' + (e && e.message || e); }
+  passo.ok = !/não respondeu|não achei|deu erro|bloquead|não autorizad|não existe|não deu/i.test(texto.slice(0, 400));
+  if (a && openAgentRef === a) renderAgent();
+  try { await n8nPost('resposta', { ref: c.id, resultado: texto.slice(0, 12000) }); } catch (e) {}
+}
+async function usarTela(a, nomeTela, acao, alvo) {
+  if (!APP) return 'Sem a extensão do escritório no Chrome, os agentes não conseguem usar as telas.';
+  const achada = acharTela(nomeTela, a);
+  if (!achada) return `Não achei a tela "${nomeTela}". As telas são: ` + mapaTelas().map(t => `${t.tela} (${t.nome}: ${(t.guias.find(g => g.ativa) || {}).titulo || 'vazia'})`).join('; ');
+  const b = browsers[achada.key];
+  if (a && a.real) irAteTela(a, achada.key);
+  destacarTela(achada.key, a);
+  if (a && ultimoUso[a.id] !== achada.key) { ultimoUso[a.id] = achada.key; toast(`<b>${a.name}</b> está usando ${escapeHtml(b.title)}`); }
+  if (achada.tab && achada.tab !== b.active) { activateTab(b, achada.tab); await esperar(600); }
+  let msg = '';
+  if (acao === 'abrir') {
+    let url = alvo.trim();
+    if (!/^https?:\/\//i.test(url)) url = url.startsWith('/') ? ABEKYO + url : /^[^\s]+\.[^\s]{2,}/.test(url) ? 'https://' + url : GOOGLE + encodeURIComponent(url);
+    // o mesmo site já aberto: usa a guia que existe (o WhatsApp não funciona em duas guias; a segunda fica com a tela verde de erro)
+    const host = hostOf(url), unico = /(^|\.)whatsapp\.com$/.test(host);
+    const todas = Object.values(unico ? browsers : { [achada.key]: b }).flatMap(x => x.tabs.map(t => ({ x, t })));
+    const ja = todas.find(({ t }) => hostOf(t.url) === host && (unico || t.url.replace(/\/$/, '') === url.replace(/\/$/, '')));
+    if (ja) {
+      if (ja.x !== b) return usarTela(a, ja.x.key, 'ler', '');
+      activateTab(b, ja.t); msg = `${host} já estava aberto: usei a guia que existe`; await esperar(800);
+    } else { addTab(b, url); msg = `abri ${url} numa guia nova`; await esperar(3000); }
+  } else if (acao === 'guia') {
+    const t = b.tabs[(parseInt(alvo, 10) || 0) - 1];
+    if (!t) return `A tela ${achada.key} tem ${b.tabs.length} guia(s); não existe a guia ${alvo}.`;
+    activateTab(b, t); msg = `troquei para a guia ${alvo}`; await esperar(1200);
+  } else if (acao === 'voltar') {
+    escritorioApp.nav(b.active.name, 'back'); msg = 'voltei uma página'; await esperar(1800);
+  } else if (acao === 'perguntar') {
+    if (!alvo.trim()) return 'Para perguntar, o alvo é o pedido completo para a IA da tela.';
+    const r = await pedirTela(b.active, 'perguntar', alvo, 150000, { ms: 140000 });
+    const g = b.active;
+    return `Tela ${achada.key} · ${b.title} · ${g.title || ''} — ${g.url}\n${r.mensagem || ''}\n\n${r.texto || ''}`.trim();
+  } else if (acao === 'esperar') {
+    const seg = Math.min(Math.max(parseInt(alvo, 10) || 20, 3), 90);
+    await esperar(seg * 1000); msg = `esperei ${seg} s`;
+  } else if (['clicar', 'rolar', 'digitar'].includes(acao)) {
+    const r = await pedirTela(b.active, acao, alvo);
+    msg = r.mensagem || (r.ok ? 'feito' : 'não deu');
+    if (!r.ok) return `Tela ${achada.key} (${b.title}): ${msg}.` + (r.texto ? `\n\nO que está na tela agora:\n${r.texto}` : '');
+    await esperar(acao === 'clicar' ? 1800 : 900);
+  } else if (acao !== 'ler') {
+    return `Ação "${acao}" não existe. Use: ler, clicar, rolar, abrir, guia, voltar, digitar, perguntar ou esperar.`;
+  }
+  const lido = await pedirTela(b.active, 'ler', '');
+  const g = b.active, n = b.tabs.indexOf(g) + 1;
+  return `Tela ${achada.key} · ${b.title} · guia ${n} de ${b.tabs.length}: ${g.title || ''} — ${g.url}\n${msg ? msg + '\n' : ''}\n${lido.texto || lido.mensagem || '(a tela está vazia)'}`;
+}
+
+function openAgent(a) {
+  if (document.pointerLockElement) document.exitPointerLock();
+  pauseEl.hidden = true; brainEl.hidden = true;
+  openAgentRef = a; agWin.hidden = false; a.falha = '';
+  agMsgs.dataset.html = agInfo.dataset.html = '';
+  renderAgent(true);
+  if (!agIn.disabled) setTimeout(() => agIn.focus(), 50);
+}
+function closeAgent(resume = true) {
+  agWin.hidden = true; openAgentRef = null; agIn.blur();
+  if (mode === 'fp') resume ? play() : pauseEl.hidden = false;
+}
+document.getElementById('agClose').onclick = () => closeAgent(true);
+function n8nHelp() {
+  return `<div><p class="label">Ligar os agentes de verdade</p>
+    <ol class="pc-note" style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
+      <li>No n8n do seu PC, importe os 3 fluxos da pasta <code>n8n</code> do projeto (Central, Fábio e Ana), escolha a credencial do Gemini e <b>ative</b> os três.</li>
+      <li>Confira o endereço do n8n:
+        <form id="n8nForm" style="display:flex;gap:8px;margin-top:6px"><input id="n8nUrl" value="${escapeHtml(N8N.url)}" spellcheck="false"><button class="btn">Salvar</button></form></li>
+    </ol>
+    ${N8N.erro ? `<p class="pc-note">Última tentativa: ${escapeHtml(N8N.erro)}</p>` : ''}</div>`;
+}
+function setN8nUrl(v) {
+  v = String(v || '').trim(); if (!v) return;
+  if (!/^https?:\/\//i.test(v)) v = 'http://' + v;
+  N8N.url = v; savePref('n8nUrl', v); N8N.falhas = 0; toast('Procurando o n8n em ' + escapeHtml(v) + '…');
+}
+function renderAgent(scroll) {
+  const a = openAgentRef; if (!a) return;
+  const pode = !!(a.real && N8N.on);
+  document.getElementById('agSwatch').style.background = a.color;
+  document.getElementById('agTitle').innerHTML = `${a.name} <small>· ${escapeHtml(a.role)} · ${a.real ? 'agente de verdade (n8n)' : 'simulado'}</small>`;
+  document.getElementById('agPill').innerHTML = pill(a.status);
+
+  let info = '';
+  if (a.real) {
+    info += `<div><p class="label">Tarefa atual</p><div class="desc">${a.task ? escapeHtml(a.task) : '<span class="pc-note">Nenhuma agora.</span>'}</div></div>`;
+    if (a.resultado) info += `<div><p class="label">Último resultado</p><div class="result md">${md(a.resultado)}</div></div>`;
+  } else {
+    info += `<p class="pc-note">${N8N.on ? `${a.name} ainda não tem fluxo no n8n, então é simulado. O Fábio já pode passar tarefas para ${a.name}: elas ficam guardadas esperando a função ficar pronta.` : 'O n8n do seu PC não respondeu, então a equipe está simulada.'}</p>`;
+  }
+  if (a.real && N8N.on) {
+    const mems = (N8N.memorias || []).filter(m => m.agente === a.id || m.agente === 'todos');
+    info += `<div><p class="label">O que ${a.name} aprendeu <button class="btn mini" id="memNova" title="Ensinar uma instrução que ${a.name} vai seguir sempre">+ ensinar</button></p>
+      ${mems.length ? `<ul class="memorias">${mems.map(m => `<li>${escapeHtml(m.texto)}${m.agente === 'todos' ? ' <small>(todos)</small>' : ''}<button class="x" data-mem="${escapeHtml(m.id)}" title="Esquecer">×</button></li>`).join('')}</ul>`
+        : `<p class="pc-note">Nada ainda. Diga, por exemplo, "a partir de agora, sempre…" ou clique em + ensinar.</p>`}</div>`;
+  }
+  if (!N8N.on) info += n8nHelp();
+  info += `<div><p class="label">Histórico</p><ul class="log">${a.logs.map(l => `<li><time>${l.t}</time>${escapeHtml(l.msg)}</li>`).join('') || '<li>Sem eventos ainda</li>'}</ul></div>`;
+  // só redesenha o que mudou, para não atrapalhar quem está selecionando texto ou digitando o endereço
+  if (agInfo.dataset.html !== info) {
+    agInfo.dataset.html = info; agInfo.innerHTML = info;
+    const f = document.getElementById('n8nForm');
+    if (f) f.onsubmit = e => { e.preventDefault(); setN8nUrl(document.getElementById('n8nUrl').value); };
+    const nova = document.getElementById('memNova');
+    if (nova) nova.onclick = async () => {
+      const texto = (prompt(`O que ${a.name} deve fazer sempre (ou nunca)?`) || '').trim(); if (!texto) return;
+      try { await n8nPost('evento', { agente: 'memoria', de: a.id, texto }); N8N.memorias = (N8N.memorias || []).concat({ id: 'novo-' + Date.now(), agente: a.id, texto }); renderAgent(); }
+      catch (err) { toast('Não deu para guardar: ' + escapeHtml(err && err.message || err)); }
+    };
+    agInfo.querySelectorAll('[data-mem]').forEach(b => b.onclick = async () => {
+      try { await n8nPost('evento', { agente: 'memoria', card: b.dataset.mem, coluna: 'apagado' }); N8N.memorias = (N8N.memorias || []).filter(m => m.id !== b.dataset.mem); renderAgent(); }
+      catch (err) { toast('Não deu para apagar: ' + escapeHtml(err && err.message || err)); }
+    });
+  }
+
+  const conv = a.conversa || [];
+  a.pend = (a.pend || []).filter(p => !conv.some(m => m.de === 'wes' && m.texto === p.texto && Date.parse(m.t) >= p.t - 120000));
+  let html = conv.map(m => {
+    const meu = m.de === 'wes', outro = !meu && m.de !== a.id;
+    return `<div class="msg ${meu ? 'user' : 'assistant md'}">${outro ? `<span class="who">${escapeHtml(QUEM[m.de] || m.de)} pediu</span>` : ''}${meu ? escapeHtml(m.texto) : m.de === 'ana' ? comEnvios(m) : md(m.texto)}</div>`;
+  }).join('') + a.pend.map(p => `<div class="msg user pending">${escapeHtml(p.texto)}</div>`).join('');
+  if (a.real && a.task && (a.status === 'working' || a.status === 'walking' || a.status === 'using'))
+    html += `<div class="msg assistant typing">${a.name} está trabalhando nisso…${(a.passos || []).length ? `<ul class="passos">${a.passos.map(p =>
+      `<li>${p.ok === null ? '⏳' : p.ok ? '✓' : '✗'} ${escapeHtml(p.txt)}</li>`).join('')}</ul>` : ''}</div>`;
+  if (a.falha) html += `<div class="msg err">${escapeHtml(a.falha)}</div>`;
+  if (!html) html = `<p class="pc-note">${pode ? AG_DICA[a.id] || `Converse com ${a.name}.` : `${a.name} ainda não conversa: ${N8N.on ? 'falta o fluxo dele no n8n.' : 'o n8n está desligado.'}`}</p>`;
+  if (agMsgs.dataset.html !== html) {
+    const fim = agMsgs.scrollHeight - agMsgs.scrollTop - agMsgs.clientHeight < 40;
+    agMsgs.dataset.html = html; agMsgs.innerHTML = html;
+    agMsgs.querySelectorAll('.envio textarea').forEach(t => { if (envioEdits[t.dataset.key] != null) t.value = envioEdits[t.dataset.key]; });
+    if (fim || scroll) agMsgs.scrollTop = agMsgs.scrollHeight;
+  }
+  if (agIn.disabled === pode) agIn.disabled = !pode;
+  agIn.placeholder = pode ? `Escreva para ${a.name}… (Enter envia, Shift+Enter quebra linha)` : `${a.name} ainda não recebe pedidos`;
+}
+// ---- cartões de envio da Ana: ela prepara, o Wes revisa e aperta Enviar (sai pelo WhatsApp comercial, pela Evolution)
+const envioEdits = {};
+const ENVIO_RE = /\[\[enviar\s+para="([^"]*)"(?:\s+nome="([^"]*)")?\s*\]\]([\s\S]*?)\[\[\/enviar\]\]/g;
+function enviados() { try { return JSON.parse(localStorage.getItem('escritorio.enviados') || '{}'); } catch (e) { return {}; } }
+function comEnvios(m) {
+  let html = '', ult = 0, i = 0, r;
+  const feitos = enviados();
+  ENVIO_RE.lastIndex = 0;
+  while ((r = ENVIO_RE.exec(m.texto))) {
+    html += md(m.texto.slice(ult, r.index));
+    const key = `${m.t}#${i++}`, numero = r[1].trim(), nome = (r[2] || '').trim(), texto = r[3].trim(), feito = feitos[key];
+    html += `<div class="envio${feito ? ' feito' : ''}"><div class="envio-top">Para <b>${escapeHtml(nome || numero)}</b>${nome ? ` <small>${escapeHtml(numero)}</small>` : ''}</div>
+      <textarea data-key="${escapeHtml(key)}" rows="3"${feito ? ' disabled' : ''}>${escapeHtml(feito ? feito.texto : texto)}</textarea>
+      <div class="envio-pe">${feito ? `<span class="envio-st">✓ enviado ${escapeHtml(feito.quando)}</span>`
+        : `<button class="btn primary" data-enviar="${escapeHtml(key)}" data-numero="${escapeHtml(numero)}" data-nome="${escapeHtml(nome)}">Enviar pelo WhatsApp</button><span class="envio-st"></span>`}</div></div>`;
+    ult = ENVIO_RE.lastIndex;
+  }
+  return html + md(m.texto.slice(ult));
+}
+agMsgs.addEventListener('input', e => { if (e.target.matches('.envio textarea')) envioEdits[e.target.dataset.key] = e.target.value; });
+agMsgs.addEventListener('click', async e => {
+  const b = e.target.closest('[data-enviar]'); if (!b || b.disabled) return;
+  const card = b.closest('.envio'), st = card.querySelector('.envio-st'), area = card.querySelector('textarea');
+  const texto = area.value.trim(), { numero, nome, enviar: key } = b.dataset;
+  if (!texto) { st.textContent = 'a mensagem está vazia'; return; }
+  if (!window.ESCRITORIO_ENVIO) { st.textContent = 'rode o instalar.bat para ligar o envio'; return; }
+  if (!confirm(`Enviar pelo WhatsApp comercial para ${nome || numero}?\n\n${texto}`)) return;
+  b.disabled = true; st.textContent = 'enviando…';
+  try {
+    const r = await fetch(`${n8nBase()}/webhook/escritorio/whatsapp-enviar`, { method: 'POST', body: new URLSearchParams({ numero, nome, texto, codigo: window.ESCRITORIO_ENVIO }) });
+    const j = await r.json().catch(() => ({ ok: false, erro: 'HTTP ' + r.status }));
+    if (!j.ok) throw new Error(j.erro || 'não enviou');
+    const feitos = enviados(); feitos[key] = { texto, quando: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) };
+    try { localStorage.setItem('escritorio.enviados', JSON.stringify(feitos)); } catch (err) {}
+    n8nPost('evento', { agente: 'ana', de: 'wes', texto: `✅ Enviei pelo WhatsApp para ${nome || numero} (${numero}): ${texto}` }).catch(() => {});
+    agMsgs.dataset.html = ''; renderAgent();
+  } catch (err) { b.disabled = false; st.textContent = 'não enviou: ' + (err && err.message || err); }
+});
+agForm.onsubmit = async e => {
+  e.preventDefault();
+  const a = openAgentRef, texto = agIn.value.trim();
+  if (!a || !texto || !(a.real && N8N.on)) return;
+  agIn.value = ''; a.falha = '';
+  (a.pend = a.pend || []).push({ texto, t: Date.now() });
+  renderAgent(true);
+  try {
+    // formulário simples: o navegador não precisa pedir licença (CORS) antes de mandar para o n8n
+    const r = await fetch(`${n8nBase()}/webhook/escritorio/${a.id}`, { method: 'POST', body: new URLSearchParams({ texto, de: 'wes' }) });
+    if (!r.ok) throw new Error(r.status === 404 ? `o fluxo da ${a.name} não está ativo (404)` : 'HTTP ' + r.status);
+  } catch (err) {
+    a.pend = a.pend.filter(p => p.texto !== texto);
+    a.falha = `O pedido não chegou no n8n: ${err && err.message || err}.`;
+    if (!agIn.value) agIn.value = texto;
+  }
+  renderAgent(true);
+};
+agIn.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); agForm.requestSubmit(); } });
+n8nBtn.onclick = () => { const v = prompt('Endereço do n8n no seu PC', N8N.url); if (v) setN8nUrl(v); };
+if (EMBED) { n8nBtn.hidden = false; renderN8nBtn(); pollN8n(); }
+
+// ================= quadro de tarefas (kanban) =================
+// Os cartões nascem dos avisos dos agentes no n8n: "trabalhando" põe em Fazendo, "aguardando" em A fazer,
+// e o fim do trabalho move para Feito ou Com erro. Aqui dá para arrastar, criar e pedir para o agente fazer agora.
+const kanWin = document.getElementById('kanWin'), kanCols = document.getElementById('kanCols'), kanDet = document.getElementById('kanDet');
+const kanForm = document.getElementById('kanForm'), kanTexto = document.getElementById('kanTexto'), kanAgente = document.getElementById('kanAgente'), kanAgora = document.getElementById('kanAgora');
+const kan = { filtro: '', sel: null, msg: '' };
+const agById = id => agents.find(a => a.id === id);
+function openKanban() {
+  if (document.pointerLockElement) document.exitPointerLock();
+  pauseEl.hidden = true; brainEl.hidden = true; kanWin.hidden = false;
+  kanAgente.innerHTML = TEAM.map(t => `<option value="${t.id}">${t.name} · ${escapeHtml(t.role)}</option>`).join('');
+  renderKanban();
+}
+function closeKanban(resume = true) {
+  kanWin.hidden = true; kanForm.hidden = true;
+  if (mode === 'fp') resume ? play() : pauseEl.hidden = false;
+}
+document.getElementById('kanClose').onclick = () => closeKanban(true);
+document.getElementById('kanNova').onclick = () => { kanForm.hidden = !kanForm.hidden; if (!kanForm.hidden) { syncKanForm(); kanTexto.focus(); } };
+document.getElementById('kanCancelar').onclick = () => { kanForm.hidden = true; };
+function syncKanForm() {
+  const a = agById(kanAgente.value), real = !!(a && a.real && N8N.on);
+  kanAgora.disabled = !real; kanAgora.parentElement.style.opacity = real ? 1 : .5;
+  kanAgora.parentElement.title = real ? '' : `${a ? a.name : 'Este agente'} ainda não tem fluxo: a tarefa fica em A fazer, esperando`;
+}
+kanAgente.onchange = syncKanForm;
+kanForm.onsubmit = async e => {
+  e.preventDefault();
+  const texto = kanTexto.value.trim(), a = agById(kanAgente.value);
+  if (!texto || !a) return;
+  if (!N8N.on) { kan.msg = 'O n8n está desligado: o quadro de verdade só recebe tarefas com ele ligado.'; renderKanban(); return; }
+  try {
+    if (a.real && kanAgora.checked) await n8nPost(a.id, { texto, de: 'wes' });
+    else await n8nPost('evento', { agente: a.id, status: 'aguardando', tarefa: texto, de: 'wes', texto, evento: 'Wes criou a tarefa: ' + texto });
+    kanTexto.value = ''; kanForm.hidden = true; kan.msg = '';
+  } catch (err) { kan.msg = 'Não deu para criar: ' + (err && err.message || err); }
+  renderKanban();
+};
+function kanFiltrados() { return kanbanCards().filter(k => !kan.filtro || k.agente === kan.filtro); }
+function renderKanban() {
+  if (kanWin.hidden) return;
+  const cards = kanFiltrados();
+  document.getElementById('kanSub').textContent = kanbanData
+    ? `ao vivo · ${cards.filter(k => k.coluna === 'fazendo').length} em andamento · arraste os cartões para mudar de coluna`
+    : 'n8n desligado: mostrando as tarefas simuladas (sem mexer)';
+  document.getElementById('kanNova').hidden = !kanbanData;
+  document.getElementById('kanFiltro').innerHTML = `<button class="chipbtn" data-f="" aria-pressed="${!kan.filtro}">Todos</button>` +
+    TEAM.map(t => `<button class="chipbtn" data-f="${t.id}" aria-pressed="${kan.filtro === t.id}"><i style="background:${t.color}"></i>${t.name}</button>`).join('');
+  kanCols.innerHTML = KAN_COLS.map(([id, nome, cor]) => {
+    const lista = cards.filter(k => k.coluna === id).sort((p, q) => String(q.atualizado || '').localeCompare(String(p.atualizado || '')));
+    return `<section class="kan-col" data-col="${id}" style="--c:${cor}"><h3>${nome}<span>${lista.length}</span></h3><div class="kan-list">${lista.map(k => {
+      const ag = TEAM.find(t => t.id === k.agente) || { name: k.agente, color: '#8d95a5' };
+      return `<button class="kcard${k.sim ? ' sim' : ''}${kan.sel === k.id ? ' sel' : ''}" data-id="${escapeHtml(k.id)}" draggable="${!k.sim}" style="--c:${ag.color}">
+        <b style="color:${ag.color}">${ag.name}</b> ${escapeHtml(k.tarefa)}<small>${k.sim ? 'simulado' : quando(k.atualizado)}${k.de && k.de !== k.agente ? ' · pedido por ' + escapeHtml(QUEM[k.de] || k.de) : ''}</small></button>`;
+    }).join('') || '<p class="pc-note" style="padding:4px">Nada aqui.</p>'}</div></section>`;
+  }).join('') + (kan.msg ? `<p class="pc-note" style="grid-column:1/-1;color:var(--accent)">${escapeHtml(kan.msg)}</p>` : '');
+  renderKanDet();
+}
+function quando(t) {
+  const d = new Date(t); if (isNaN(d)) return '';
+  const min = Math.round((Date.now() - d) / 60000);
+  return min < 1 ? 'agora' : min < 60 ? `há ${min} min` : min < 1440 ? `há ${Math.round(min / 60)} h` : d.toLocaleDateString('pt-BR');
+}
+function renderKanDet() {
+  const k = kanbanCards().find(x => x.id === kan.sel);
+  kanDet.hidden = !k; if (!k) return;
+  const a = agById(k.agente), ag = TEAM.find(t => t.id === k.agente) || { name: k.agente, color: '#8d95a5', role: '' };
+  const real = !!(a && a.real && N8N.on), col = KAN_COLS.find(c => c[0] === k.coluna) || KAN_COLS[0];
+  kanDet.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="color:${ag.color}">${ag.name} <small style="color:var(--muted);font-weight:400">· ${escapeHtml(ag.role || '')}</small></b>
+      <button class="btn" data-k="fechar" aria-label="Fechar detalhes">×</button></div>
+    <div><p class="label">Tarefa · ${col[1]}</p><div class="desc">${escapeHtml(k.tarefa)}</div></div>
+    ${k.sim ? '<p class="pc-note">Tarefa simulada: ligue o n8n para o quadro de verdade.</p>' : `
+    <p class="pc-note">${k.de ? 'Pedido por ' + escapeHtml(QUEM[k.de] || k.de) + ' · ' : ''}criada ${quando(k.criado)} · mexida ${quando(k.atualizado)}</p>
+    ${k.resultado ? `<div><p class="label">Resultado</p><div class="result">${escapeHtml(k.resultado)}</div></div>` : ''}
+    <div><p class="label">Mover para</p><div class="acts">${KAN_COLS.filter(c => c[0] !== k.coluna).map(c => `<button class="btn" data-mover="${c[0]}">${c[1]}</button>`).join('')}</div></div>
+    <div class="acts">
+      ${real && k.coluna !== 'fazendo' ? `<button class="btn primary" data-k="fazer">Pedir para ${ag.name} fazer agora</button>` : ''}
+      ${a ? `<button class="btn" data-k="conversa">Conversar com ${ag.name}</button>` : ''}
+    </div>
+    ${!real && a ? `<p class="pc-note">${ag.name} ainda não tem fluxo no n8n: a tarefa fica guardada até a função dele ficar pronta.</p>` : ''}`}`;
+}
+async function moverCartao(id, coluna) {
+  const k = (kanbanData || []).find(x => x.id === id);
+  if (!k || k.coluna === coluna) return;
+  const antes = k.coluna; k.coluna = coluna; k.atualizado = new Date().toISOString(); renderKanban(); drawQuadro();
+  try { await n8nPost('evento', { agente: k.agente, card: id, coluna, evento: `Wes moveu “${k.tarefa}” para ${KAN_COLS.find(c => c[0] === coluna)[1]}` }); kan.msg = ''; }
+  catch (err) { k.coluna = antes; kan.msg = 'Não deu para mover: ' + (err && err.message || err); renderKanban(); drawQuadro(); }
+}
+kanWin.addEventListener('click', async e => {
+  const f = e.target.closest('[data-f]'); if (f) { kan.filtro = f.dataset.f; renderKanban(); return; }
+  const c = e.target.closest('.kcard'); if (c) { kan.sel = kan.sel === c.dataset.id ? null : c.dataset.id; renderKanban(); return; }
+  const m = e.target.closest('[data-mover]'); if (m) { moverCartao(kan.sel, m.dataset.mover); return; }
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  const k = kanbanCards().find(x => x.id === kan.sel);
+  if (b.dataset.k === 'fechar') { kan.sel = null; renderKanban(); }
+  else if (b.dataset.k === 'conversa' && k) { closeKanban(false); openAgent(agById(k.agente)); }
+  else if (b.dataset.k === 'fazer' && k) {
+    b.disabled = true;
+    try { await n8nPost(k.agente, { texto: k.tarefa, de: 'wes', card: k.id }); kan.msg = `${agById(k.agente).name} recebeu a tarefa.`; }
+    catch (err) { kan.msg = 'Não deu para pedir: ' + (err && err.message || err); }
+    renderKanban();
+  }
+});
+// arrastar e soltar entre colunas
+kanCols.addEventListener('dragstart', e => { const c = e.target.closest('.kcard'); if (c) { e.dataTransfer.setData('text/plain', c.dataset.id); e.dataTransfer.effectAllowed = 'move'; } });
+kanCols.addEventListener('dragover', e => { const col = e.target.closest('.kan-col'); if (!col || !kanbanData) return; e.preventDefault(); kanCols.querySelectorAll('.over').forEach(x => x !== col && x.classList.remove('over')); col.classList.add('over'); });
+kanCols.addEventListener('dragleave', e => { const col = e.target.closest('.kan-col'); if (col && !col.contains(e.relatedTarget)) col.classList.remove('over'); });
+kanCols.addEventListener('drop', e => {
+  const col = e.target.closest('.kan-col'); if (!col) return;
+  e.preventDefault(); col.classList.remove('over');
+  moverCartao(e.dataTransfer.getData('text/plain'), col.dataset.col);
+});
+
+// ================= mural de avisos =================
+// Com o n8n ligado, os avisos ficam no n8n (o Fábio lê e também pode colar avisos). Sem n8n, ficam só neste navegador.
+const muralWin = document.getElementById('muralWin'), muralGrid = document.getElementById('muralGrid'), muralTexto = document.getElementById('muralTexto');
+let muralCor = 'amarelo', muralMsg = '';
+document.getElementById('muralCores').innerHTML = Object.entries(POSTIT).map(([n, c]) => `<button type="button" data-cor="${n}" style="background:${c}" aria-label="Post-it ${n}" aria-pressed="${n === muralCor}"></button>`).join('');
+document.getElementById('muralCores').onclick = e => {
+  const b = e.target.closest('[data-cor]'); if (!b) return;
+  muralCor = b.dataset.cor;
+  document.querySelectorAll('#muralCores button').forEach(x => x.setAttribute('aria-pressed', x === b));
+};
+function openMural() {
+  if (document.pointerLockElement) document.exitPointerLock();
+  pauseEl.hidden = true; brainEl.hidden = true; muralWin.hidden = false; muralMsg = '';
+  renderMural(); setTimeout(() => muralTexto.focus(), 50);
+}
+function closeMural(resume = true) {
+  muralWin.hidden = true; muralTexto.blur();
+  if (mode === 'fp') resume ? play() : pauseEl.hidden = false;
+}
+document.getElementById('muralClose').onclick = () => closeMural(true);
+function renderMural() {
+  if (muralWin.hidden) return;
+  const notas = muralNotas().slice().reverse();
+  document.getElementById('muralSub').textContent = (muralData ? 'compartilhado com os agentes pelo n8n' : 'n8n desligado: os avisos ficam só neste navegador') + ` · ${notas.length} aviso(s)`;
+  muralGrid.innerHTML = (muralMsg ? `<p class="pc-note" style="grid-column:1/-1;color:var(--accent)">${escapeHtml(muralMsg)}</p>` : '') + (notas.map((n, i) => `
+    <div class="postit" style="background:${POSTIT[n.cor] || POSTIT.amarelo};--r:${((i * 7) % 5 - 2) * 0.8}deg">${escapeHtml(n.texto)}
+      <small>${escapeHtml(QUEM[n.de] || n.de || '')} · ${quando(n.t)}</small>
+      <button data-apagar="${escapeHtml(n.id)}" aria-label="Tirar do mural" title="Tirar do mural">×</button></div>`).join('')
+    || '<p class="pc-note" style="grid-column:1/-1;color:#e8d8bf">Nenhum aviso ainda. Escreva o primeiro aí em cima.</p>');
+}
+function saveMuralLocal(list) { try { localStorage.setItem('escritorio.mural', JSON.stringify(list.slice(-24))); } catch (e) {} }
+document.getElementById('muralForm').onsubmit = async e => {
+  e.preventDefault();
+  const texto = muralTexto.value.trim(); if (!texto) return;
+  if (muralData) {
+    try { await n8nPost('evento', { agente: 'mural', texto, de: 'wes', status: muralCor }); muralTexto.value = ''; muralMsg = ''; muralData.push({ id: 'novo-' + Date.now(), texto, de: 'wes', cor: muralCor, t: new Date().toISOString() }); }
+    catch (err) { muralMsg = 'Não deu para colar: ' + (err && err.message || err); }
+  } else {
+    const list = loadMuralLocal(); list.push({ id: 'l' + Date.now(), texto, de: 'wes', cor: muralCor, t: new Date().toISOString() });
+    saveMuralLocal(list); muralTexto.value = '';
+  }
+  renderMural(); drawMural();
+};
+muralTexto.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('muralForm').requestSubmit(); } });
+muralGrid.onclick = async e => {
+  const b = e.target.closest('[data-apagar]'); if (!b) return;
+  const id = b.dataset.apagar;
+  if (muralData) {
+    try { await n8nPost('evento', { agente: 'mural', card: id, coluna: 'apagado' }); muralData = muralData.filter(n => n.id !== id); muralMsg = ''; }
+    catch (err) { muralMsg = 'Não deu para tirar: ' + (err && err.message || err); }
+  } else saveMuralLocal(loadMuralLocal().filter(n => n.id !== id));
+  renderMural(); drawMural();
+};
+
+// ================= mesa de som =================
+// Cada tela é um navegador independente, então várias podem tocar ao mesmo tempo. Aqui dá para ajustar cada uma,
+// o som ambiente e o geral, e escolher como o som se mistura no espaço. As escolhas ficam salvas neste navegador.
+const mixWin = document.getElementById('mixWin'), soundBtn = document.getElementById('soundBtn');
+const MIX_PADRAO = { geral: 1, modo: 'distancia', umPorVez: false, telas: {}, amb: { teclado: 1, ar: 1, cafe: 1 } };
+const mix = (() => { try { const m = JSON.parse(loadPref('mix', 'null')); return m ? { ...MIX_PADRAO, ...m, amb: { ...MIX_PADRAO.amb, ...m.amb } } : structuredClone(MIX_PADRAO); } catch (e) { return structuredClone(MIX_PADRAO); } })();
+const saveMix = () => savePref('mix', JSON.stringify(mix));
+const telaMix = key => mix.telas[key] = mix.telas[key] || { vol: 1, mudo: false };
+const AMB = [['teclado', 'Teclados de quem trabalha'], ['ar', 'Ar-condicionado'], ['cafe', 'Máquina de café']];
+const MODOS = [['distancia', 'Pela distância', 'cada tela fica mais alta de perto e baixa de longe'],
+               ['fixo', 'Volume fixo', 'todas no volume escolhido, de qualquer lugar'],
+               ['foco', 'Só a tela em uso', 'sentado numa tela, as outras ficam mudas']];
+function telasDoSom() {
+  if (APP) return focusables.filter(f => browsers[f.key]).map(f => ({ key: f.key, nome: browsers[f.key].title, tocando: browsers[f.key].tabs.filter(t => t.tocando) }));
+  return [{ key: 'tv', nome: 'TV · YouTube', tocando: [] }, { key: 'spotify', nome: 'Spotify', tocando: [] }];
+}
+function tocandoAgora() { return APP ? Object.values(browsers).flatMap(b => b.tabs.filter(t => t.tocando)) : []; }
+function renderSoundBtn() {
+  const n = tocandoAgora().length;
+  soundBtn.textContent = !soundOn ? 'Som: mudo' : n ? `Som · ${n} tocando` : 'Som';
+}
+function toggleMix() {
+  mixWin.hidden = !mixWin.hidden; soundBtn.setAttribute('aria-expanded', !mixWin.hidden);
+  if (!mixWin.hidden) { if (document.pointerLockElement) document.exitPointerLock(); startAudio(); renderMix(); }
+}
+soundBtn.onclick = toggleMix;
+function renderMix() {
+  if (mixWin.hidden) return;
+  const linha = (id, nome, sub, vol, mudo, extra = '', on = false) => `
+    <div class="mix-row"><div class="nome">${escapeHtml(nome)}${sub ? `<small class="${on ? 'on' : ''}">${escapeHtml(sub)}</small>` : ''}</div>
+      <input type="range" min="0" max="100" value="${Math.round(vol * 100)}" data-vol="${id}" aria-label="Volume de ${escapeHtml(nome)}">
+      <div class="bts"><button data-mudo="${id}" aria-pressed="${mudo}" title="${mudo ? 'Ligar o som' : 'Deixar mudo'}">${mudo ? '🔇' : '🔊'}</button>${extra}</div></div>`;
+  mixWin.innerHTML = `
+    <h3>Som do escritório <button class="btn" data-mx="fechar" aria-label="Fechar">×</button></h3>
+    ${linha('geral', 'Volume geral', soundOn ? '' : 'tudo mudo', mix.geral, !soundOn)}
+    <div><p class="label">Como o som se mistura</p><div class="seg">${MODOS.map(([id, nome]) => `<button data-modo="${id}" aria-pressed="${mix.modo === id}">${nome}</button>`).join('')}</div>
+      <p class="pc-note" style="margin-top:6px">${MODOS.find(m => m[0] === mix.modo)[2]}.</p></div>
+    ${APP ? `<label class="chk"><input type="checkbox" data-mx="umPorVez" ${mix.umPorVez ? 'checked' : ''}> <span><b>Um som por vez</b><br><span class="pc-note">quando algo começa a tocar numa tela, as outras pausam</span></span></label>` : ''}
+    <div><p class="label">Telas</p>${telasDoSom().map(t => {
+      const m = telaMix(t.key), sub = t.tocando.length ? '▶ ' + t.tocando.map(x => x.title || hostOf(x.url)).join(' · ') : APP ? 'em silêncio' : '';
+      return linha('tela:' + t.key, t.nome, sub, m.vol, m.mudo, t.tocando.length ? `<button data-pausar="${t.key}" title="Pausar o que está tocando">Pausar</button>` : '', t.tocando.length > 0);
+    }).join('')}</div>
+    <div><p class="label">Ambiente</p>${AMB.map(([id, nome]) => linha('amb:' + id, nome, '', mix.amb[id], mix.amb[id] === 0)).join('')}</div>
+    ${APP && tocandoAgora().length ? '<button class="btn" data-mx="pausarTudo">Pausar tudo que está tocando</button>' : ''}`;
+}
+function setVol(id, v) {
+  if (id === 'geral') mix.geral = v;
+  else if (id.startsWith('tela:')) telaMix(id.slice(5)).vol = v;
+  else if (id.startsWith('amb:')) mix.amb[id.slice(4)] = v;
+  saveMix(); forceAudio();
+}
+function forceAudio() { Object.keys(appVol).forEach(k => delete appVol[k]); if (listener) listener.setMasterVolume(soundOn ? mix.geral : 0); updateAudio(); renderSoundBtn(); }
+mixWin.addEventListener('input', e => { const r = e.target.closest('[data-vol]'); if (r) setVol(r.dataset.vol, r.value / 100); });
+mixWin.addEventListener('change', e => { if (e.target.dataset.mx === 'umPorVez') { mix.umPorVez = e.target.checked; saveMix(); } });
+mixWin.addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.mx === 'fechar') toggleMix();
+  else if (t.dataset.modo) { mix.modo = t.dataset.modo; saveMix(); forceAudio(); renderMix(); }
+  else if (t.dataset.pausar) { browsers[t.dataset.pausar].tabs.filter(x => x.tocando).forEach(x => escritorioApp.pause(x.name)); }
+  else if (t.dataset.mx === 'pausarTudo') tocandoAgora().forEach(x => escritorioApp.pause(x.name));
+  else if (t.dataset.mudo) {
+    const id = t.dataset.mudo;
+    if (id === 'geral') soundOn = !soundOn;
+    else if (id.startsWith('tela:')) { const m = telaMix(id.slice(5)); m.mudo = !m.mudo; }
+    else if (id.startsWith('amb:')) { const k = id.slice(4); mix.amb[k] = mix.amb[k] === 0 ? 1 : 0; }
+    saveMix(); startAudio(); forceAudio(); renderMix();
+  }
+});
+// guia começou ou parou de tocar: alto-falante na guia, contador no botão Som e, no modo "um som por vez", pausa as outras
+if (APP) escritorioApp.onTocando((name, on) => {
+  const o = tabOf[name]; if (!o) return;
+  o.tab.tocando = on; o.tab.btn.querySelector('.som').hidden = !on;
+  if (on && mix.umPorVez) tocandoAgora().forEach(x => { if (x !== o.tab) escritorioApp.pause(x.name); });
+  renderSoundBtn(); renderMix();
+});
+renderSoundBtn();
+
 // ================= loop =================
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
@@ -1808,15 +2895,15 @@ function loop() {
     if ((tipT += dt) > 0.1) {
       tipT = 0;
       const hit = pick(0, 0);
-      setBoardHi(hit && hit.board ? hit.node : null);
       let txt = '';
-      if (hit && hit.media && hit.dist < 12) txt = hit.media === 'tv' ? 'TV · clique para assistir' : 'Caixa de som · Spotify · clique para escolher a música';
+      if (hit && hit.media && hit.dist < 12) txt = hit.media === 'tv' ? 'TV · clique para assistir' : hit.media === 'painel' ? 'Painel comercial da Ana · régua de follow-up e Telegram' : 'Caixa de som · Spotify · clique para escolher a música';
       else if (hit && hit.pc && hit.dist < 8 && EMBED) txt = `PC ${hit.pc.i + 1} · clique para sentar e usar`;
       else if (hit && hit.pc && hit.dist < 8) txt = hit.pc.kind === 'site' ? 'Sistema Cantinho do Au Au · clique para abrir'
         : hit.pc.kind === 'task' ? `PC ${hit.pc.i + 1} · ${(hit.pc.task && hit.pc.task.titulo) || TASK_META[hit.pc.taskId][1]} · clique para abrir`
         : hit.pc.ev ? `PC ${hit.pc.i + 1} · ${hit.pc.ev.summary || 'compromisso'} · clique para abrir` : `PC ${hit.pc.i + 1} · agenda`;
       else if (hit && hit.agent && hit.dist < 10) txt = `${hit.agent.name} · ${STATUS[hit.agent.status].txt} · clique para ver`;
-      else if (hit && hit.board) txt = hit.node != null ? `${brain.nodes[hit.node].label} · ${neighbors(hit.node).length} links · clique para abrir` : 'Segundo Cérebro · clique para abrir o mapa';
+      else if (hit && hit.board && hit.dist < 14) txt = 'Quadro de tarefas · clique para abrir';
+      else if (hit && hit.mural && hit.dist < 10) txt = 'Mural de avisos · clique para escrever';
       tipEl.textContent = txt; tipEl.hidden = !txt;
     }
   } else controls.update();
@@ -1828,7 +2915,7 @@ function loop() {
   }
   requestAnimationFrame(loop);
 }
-renderList(); renderDetail(); drawBoard(); drawBrainBoard();
-document.fonts && document.fonts.ready.then(() => { agents.forEach(drawLabel); drawBoard(); drawBrainBoard(); });
+renderList(); renderDetail(); drawQuadro(); drawMural();
+document.fonts && document.fonts.ready.then(() => { agents.forEach(drawLabel); drawQuadro(); drawMural(); });
 loop();
 </script>

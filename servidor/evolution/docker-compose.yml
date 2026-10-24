@@ -1,0 +1,28 @@
+# Evolution API: o WhatsApp comercial conectado por QR code, para a Ana ler as conversas (só leitura).
+# O instalar.bat sobe isto sozinho (docker compose up -d) e cria o arquivo .env com a chave desta máquina.
+name: escritorio-evolution
+services:
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: escritorio_evolution
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file: .env
+    depends_on:
+      - postgres
+    volumes:
+      - evolution_instances:/evolution/instances
+  postgres:
+    image: postgres:16-alpine
+    container_name: escritorio_evolution_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: evolution
+      POSTGRES_DB: evolution
+    volumes:
+      - evolution_db:/var/lib/postgresql/data
+volumes:
+  evolution_instances:
+  evolution_db:

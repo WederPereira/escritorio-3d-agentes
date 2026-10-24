@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel comercial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="escritorio-config.js" onerror="void 0"></script>
+<style>
+  :root { --bg: #0e1412; --card: #151d1a; --line: #263330; --text: #e6ece9; --muted: #8fa39b; --accent: #6fd3a8; --gold: #f2c45a; --red: #ff9b8a;
+          --mono: 'JetBrains Mono', ui-monospace, monospace; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 Manrope, system-ui, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 22px 26px 40px; }
+  h1 { font-size: 26px; margin: 0; letter-spacing: -.01em; }
+  h2 { font-size: 21px; margin: 30px 0 6px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 14px; max-width: 720px; }
+  .topo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .chip { font: 12px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+  .chip.ok { color: var(--accent); border-color: #2f5a49; } .chip.mal { color: var(--red); border-color: #6b3a33; }
+  button { font: 600 13px Manrope, sans-serif; border-radius: 8px; border: 1px solid var(--line); background: #1d2925; color: var(--text); padding: 7px 12px; cursor: pointer; }
+  button.prim { background: var(--accent); color: #0b1310; border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  .caixa { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+  /* régua */
+  .regua { position: relative; height: 92px; margin: 6px 44px 0; }
+  .regua .linha { position: absolute; left: 0; right: 0; top: 22px; height: 2px; background: #2c3b36; }
+  .etapa { position: absolute; top: 10px; transform: translateX(-50%); text-align: center; cursor: pointer; background: none; border: 0; padding: 0; color: var(--text); }
+  .etapa .bola { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--accent); background: var(--card); margin: 0 auto; display: grid; place-items: center; font: 700 11px var(--mono); }
+  .etapa.tem .bola { background: var(--accent); color: #0b1310; } .etapa.D0 .bola { border-color: #7d9a90; }
+  .etapa.sel .bola { box-shadow: 0 0 0 4px rgba(111,211,168,.25); }
+  .etapa b { display: block; margin-top: 6px; font-size: 14px; } .etapa small { font: 11px var(--mono); color: var(--muted); }
+  .lista { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; }
+  .lista li { display: grid; grid-template-columns: minmax(150px, 220px) 90px 1fr; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: #121917; font-size: 14px; }
+  .lista li .t { font: 12px var(--mono); color: var(--muted); } .lista li .u { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lista li.crit { border-color: #6b4e2a; background: #1d1912; }
+  .vazio { color: var(--muted); font-size: 14px; margin: 12px 0 0; }
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  /* telegram */
+  .cartoes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .cartao { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .cartao.crit { border-color: #8a6a22; }
+  .cartao .rot { font: 12px var(--mono); color: var(--muted); } .cartao h3 { margin: 0; font-size: 17px; }
+  .cartao p { margin: 0; font-size: 13.5px; }
+  .cartao textarea { width: 100%; min-height: 150px; resize: vertical; background: #0f1513; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: 12.5px/1.45 var(--mono); }
+  .cartao .st { font: 12px var(--mono); color: var(--muted); min-height: 16px; }
+  .envios { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+  .envios li { font-size: 13px; border-left: 3px solid var(--accent); padding: 4px 10px; background: #121917; border-radius: 0 8px 8px 0; }
+  .envios li span { font: 12px var(--mono); color: var(--muted); margin-right: 8px; }
+  details.cfg { margin-top: 14px; } details.cfg summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+  .campos { display: grid; grid-template-columns: 180px 1fr auto; gap: 8px 10px; align-items: center; margin-top: 12px; }
+  .campos input[type=text], .campos input[type=password] { background: #0f1513; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font: 13px var(--mono); }
+  .ajuda { color: var(--muted); font-size: 13px; }
+  .rodape { color: var(--muted); max-width: 720px; margin-top: 26px; }
+  .erro { color: var(--red); }
+  @media (max-width: 900px) { .cartoes { grid-template-columns: 1fr 1fr; } .duas { grid-template-columns: 1fr; } .campos { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="topo">
+    <h1>Painel comercial</h1>
+    <span class="chip" id="zap">WhatsApp…</span>
+    <span class="chip" id="conv"></span>
+    <span class="chip" id="hora"></span>
+    <button id="atualizar">⟳ Atualizar</button>
+  </div>
+  <p class="erro" id="erro" hidden></p>
+
+  <h2>Régua de follow-up</h2>
+  <p class="sub">Conta a partir do dia zero, a primeira mensagem nossa que ficou sem resposta. Se o lead responde, a régua zera. Meta: R5 em 100%.</p>
+  <div class="caixa">
+    <div class="regua" id="regua"><div class="linha"></div></div>
+    <ul class="lista" id="leads"></ul>
+  </div>
+
+  <div class="duas">
+    <div><h2>Esperando resposta</h2><p class="sub">O cliente falou por último. Crítico: mais de 24h sem resposta ou assunto delicado.</p><div class="caixa"><ul class="lista" id="esperando"></ul></div></div>
+    <div><h2>Envios recentes</h2><p class="sub">O que já foi para o Telegram (pelo painel ou no envio diário).</p><div class="caixa"><ul class="envios" id="envios"></ul></div></div>
+  </div>
+
+  <h2>Quem recebe o quê no Telegram</h2>
+  <p class="sub">A mensagem de cada um já vem montada com os dados acima. Confira, ajuste se quiser e aperte Enviar.</p>
+  <div class="cartoes" id="cartoes"></div>
+
+  <details class="cfg" id="cfg">
+    <summary>Configurar o Telegram e o envio diário</summary>
+    <div class="campos">
+      <label for="token">Token do bot</label><input type="password" id="token" placeholder="123456:ABC… (do @BotFather)"><button data-salvar="telegram_token" data-campo="token">Salvar</button>
+      <label for="chat_mari">ID da Mari</label><input type="text" id="chat_mari"><button data-salvar="chat_mari" data-campo="chat_mari">Salvar</button>
+      <label for="chat_gustavo">ID do Gustavo</label><input type="text" id="chat_gustavo"><button data-salvar="chat_gustavo" data-campo="chat_gustavo">Salvar</button>
+      <label for="chat_rosangela">ID da Rosângela</label><input type="text" id="chat_rosangela"><button data-salvar="chat_rosangela" data-campo="chat_rosangela">Salvar</button>
+      <label for="chat_wes">ID do Wes</label><input type="text" id="chat_wes"><button data-salvar="chat_wes" data-campo="chat_wes">Salvar</button>
+      <label for="auto">Envio diário</label><label class="ajuda"><input type="checkbox" id="auto"> enviar sozinho todo dia às 8h30 (Mari e Gustavo sempre; Rosângela e Wes só quando houver algo)</label><span></span>
+    </div>
+    <p class="ajuda">Para descobrir os IDs: cada pessoa manda um "oi" para o bot no Telegram, e você clica em <button id="ids">Descobrir IDs</button></p>
+    <ul class="envios" id="lista-ids"></ul>
+    <p class="ajuda" id="cfg-st"></p>
+  </details>
+
+  <p class="rodape">A proposta é feita pessoalmente na avaliação comportamental, e quase todo lead que comparece fecha. Por isso o agente cobra o registro no CRM, não proposta pelo WhatsApp.</p>
+</main>
+<script>
+const N8N = (window.ESCRITORIO_N8N || 'http://localhost:5678').replace(/\/$/, ''), CODIGO = window.ESCRITORIO_ENVIO || '';
+const ETAPAS = [['D0', 0, 'sem resposta'], ['R1', 1, 'D+1'], ['R2', 2, 'D+2'], ['R3', 4, 'D+4'], ['R4', 7, 'D+7'], ['R5', 14, 'D+14']];
+const PESSOAS = [
+  ['mari', 'SDR · todo dia', 'Mari', 'Leads novos, quem espera resposta, follow-ups R1–R5, confirmar avaliação de amanhã, remarcar quem faltou, o que falta no CRM.'],
+  ['gustavo', 'Vendedor · todo dia', 'Gustavo', 'Críticos, avaliações do dia, quem avaliou e precisa do fechamento lançado no CRM (presença e faturamento), oportunidades na base.'],
+  ['rosangela', 'Só em caso crítico', 'Rosângela', 'Reembolso ou cancelamento, reclamação grave, cão machucado ou doente, cliente sem resposta há mais de 24h, promessa nossa vencida.'],
+  ['wes', 'Por último', 'Wes', 'Crítico ainda aberto 20h depois do aviso à Rosângela, semana sem venda nova e alertas de conexão.'],
+];
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const tempo = l => l.horas < 24 ? `${l.horas}h` : `${l.dias} dia${l.dias === 1 ? '' : 's'}`;
+let dados = null, etapaSel = null;
+const editado = {};
+
+async function carregar() {
+  try {
+    const r = await fetch(`${N8N}/webhook/escritorio/comercial`, { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status === 404 ? 'o fluxo "Escritório · Painel comercial" não está ativo no n8n (rode o instalar.bat)' : 'HTTP ' + r.status);
+    dados = await r.json(); $('erro').hidden = true; desenhar();
+  } catch (e) { $('erro').hidden = false; $('erro').textContent = 'Não deu para ler o n8n: ' + (e.message || e); }
+}
+function desenhar() {
+  const d = dados, zap = d.whatsapp;
+  $('zap').textContent = zap === 'open' ? 'WhatsApp conectado' : 'WhatsApp: ' + zap; $('zap').className = 'chip ' + (zap === 'open' ? 'ok' : 'mal');
+  $('conv').textContent = `${d.conversas} conversas lidas`;
+  $('hora').textContent = 'atualizado ' + new Date(d.atualizado).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  // régua: posição pelo dia, como na régua de papel
+  const regua = $('regua');
+  regua.querySelectorAll('.etapa').forEach(e => e.remove());
+  for (const [k, dia, rot] of ETAPAS) {
+    const n = (d.regua[k] || []).length, b = document.createElement('button');
+    b.className = `etapa ${k}${n ? ' tem' : ''}${etapaSel === k ? ' sel' : ''}`; b.style.left = (dia / 14 * 100) + '%';
+    b.innerHTML = `<div class="bola">${n || ''}</div><b>${k}</b><small>${rot}</small>`;
+    b.onclick = () => { etapaSel = etapaSel === k ? null : k; desenhar(); };
+    regua.appendChild(b);
+  }
+  const mostrar = etapaSel ? [[etapaSel, d.regua[etapaSel] || []]] : ETAPAS.map(([k]) => [k, d.regua[k] || []]).filter(([, l]) => l.length);
+  const itens = mostrar.flatMap(([k, l]) => l.map(x => `<li><span><b>${esc(x.nome)}</b> <span class="t">${esc(/^\d+$/.test(x.numero) ? x.numero : '')}</span></span><span class="t">${k} · ${tempo(x)}</span><span class="u" title="${esc(x.ultimo)}">nós: ${esc(x.ultimo || '—')}</span></li>`));
+  $('leads').innerHTML = itens.join('') || `<p class="vazio">${etapaSel ? 'Ninguém em ' + etapaSel + ' agora.' : 'Ninguém na régua agora: todo mundo respondeu.'}</p>`;
+  $('esperando').innerHTML = d.esperando.map(x => `<li class="${x.critico ? 'crit' : ''}"><span><b>${esc(x.nome)}</b>${x.critico ? ' ⚠' : ''}</span><span class="t">há ${tempo(x)}</span><span class="u" title="${esc(x.ultimo)}">${esc(x.ultimo || '—')}${x.motivo ? ' · ' + esc(x.motivo) : ''}</span></li>`).join('')
+    || '<p class="vazio">Ninguém esperando resposta.</p>';
+  $('envios').innerHTML = d.envios.map(e => `<li><span>${new Date(e.t).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · ${esc((PESSOAS.find(p => p[0] === e.para) || [, , e.para])[2])}</span>${esc(e.status !== 'enviado' ? '(' + e.status + ') ' : '')}${esc(String(e.texto || '').slice(0, 120))}</li>`).join('')
+    || '<p class="vazio">Nada enviado ainda.</p>';
+  // cartões do Telegram
+  const tg = d.telegram;
+  $('cartoes').innerHTML = PESSOAS.map(([k, rot, nome, desc]) => {
+    const chat = tg.pessoas[k].chat, ult = d.envios.find(e => e.para === k), texto = editado[k] != null ? editado[k] : d.mensagens[k] || '';
+    const falta = !tg.configurado ? 'falta o token do bot' : !chat ? `falta o ID de ${nome}` : '';
+    return `<div class="cartao${k === 'rosangela' || k === 'wes' ? ' crit' : ''}"><span class="rot">${esc(rot)}</span><h3>${esc(nome)}</h3><p>${esc(desc)}</p>
+      <textarea data-k="${k}" placeholder="${k === 'rosangela' ? 'Nada crítico agora.' : k === 'wes' ? 'Nenhum alerta para o Wes agora.' : ''}">${esc(texto)}</textarea>
+      <button class="prim" data-enviar="${k}"${falta ? ' disabled' : ''}>Enviar para ${esc(nome)}</button>
+      <span class="st" id="st-${k}">${falta ? esc(falta) + ' (configure abaixo)' : ult ? 'último envio: ' + new Date(ult.t).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'nada enviado ainda'}</span></div>`;
+  }).join('');
+  // configuração (sem mostrar o token)
+  for (const [k] of PESSOAS) if (document.activeElement !== $('chat_' + k)) $('chat_' + k).value = tg.pessoas[k].chat;
+  $('token').placeholder = tg.configurado ? 'token salvo (digite outro para trocar)' : '123456:ABC… (do @BotFather)';
+  $('auto').checked = tg.auto;
+}
+async function post(caminho, campos) {
+  const r = await fetch(`${N8N}/webhook/escritorio/${caminho}`, { method: 'POST', body: new URLSearchParams(Object.assign({ codigo: CODIGO }, campos)) });
+  const j = await r.json().catch(() => ({ ok: false, erro: 'HTTP ' + r.status }));
+  if (!j.ok) throw new Error(j.erro || 'não deu');
+  return j;
+}
+async function salvar(chave, valor) {
+  $('cfg-st').textContent = 'salvando…';
+  try { await post('comercial-config', { chave, valor }); $('cfg-st').textContent = 'salvo ✓'; await carregar(); }
+  catch (e) { $('cfg-st').textContent = 'não salvou: ' + e.message; }
+}
+document.addEventListener('input', e => { if (e.target.matches('textarea[data-k]')) editado[e.target.dataset.k] = e.target.value; });
+document.addEventListener('click', async e => {
+  const s = e.target.closest('[data-salvar]');
+  if (s) { const v = $(s.dataset.campo).value.trim(); if (s.dataset.salvar === 'telegram_token' && !v) return; await salvar(s.dataset.salvar, v); if (s.dataset.salvar === 'telegram_token') $('token').value = ''; return; }
+  const b = e.target.closest('[data-enviar]'); if (!b || b.disabled) return;
+  const k = b.dataset.enviar, nome = PESSOAS.find(p => p[0] === k)[2], texto = document.querySelector(`textarea[data-k="${k}"]`).value.trim();
+  if (!texto) { $('st-' + k).textContent = 'a mensagem está vazia'; return; }
+  if (!CODIGO) { $('st-' + k).textContent = 'rode o instalar.bat para ligar os envios'; return; }
+  if (!confirm(`Enviar pelo Telegram para ${nome}?\n\n${texto.slice(0, 600)}`)) return;
+  b.disabled = true; $('st-' + k).textContent = 'enviando…';
+  try { await post('telegram', { acao: 'enviar', para: k, texto }); delete editado[k]; $('st-' + k).textContent = 'enviado ✓'; setTimeout(carregar, 800); }
+  catch (err) { b.disabled = false; $('st-' + k).textContent = 'não enviou: ' + err.message; }
+});
+$('auto').onchange = () => salvar('auto', $('auto').checked ? 'sim' : 'nao');
+$('ids').onclick = async () => {
+  $('lista-ids').innerHTML = '<li>procurando…</li>';
+  try {
+    const j = await post('telegram', { acao: 'ids' });
+    $('lista-ids').innerHTML = j.ids.length ? j.ids.map(x => `<li><span>${esc(x.id)}</span>${esc(x.nome)} · usar para ${PESSOAS.map(([k, , nome]) => `<button data-usar="${k}" data-id="${esc(x.id)}">${esc(nome)}</button>`).join(' ')}</li>`).join('')
+      : '<li>Ninguém mandou mensagem para o bot ainda: peça para cada pessoa mandar um "oi" para ele e clique de novo.</li>';
+  } catch (e) { $('lista-ids').innerHTML = `<li class="erro">${esc(e.message)}</li>`; }
+};
+$('lista-ids').addEventListener('click', e => { const b = e.target.closest('[data-usar]'); if (b) { $('chat_' + b.dataset.usar).value = b.dataset.id; salvar('chat_' + b.dataset.usar, b.dataset.id); } });
+$('atualizar').onclick = carregar;
+carregar(); setInterval(() => { if (!document.hidden) carregar(); }, 60000);
+</script>
+</body>
+</html>

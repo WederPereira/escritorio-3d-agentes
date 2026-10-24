@@ -2,3 +2,13 @@
 node_modules/app/log.txt
 grafo.json
 __pycache__/
+escritorio-config.js
+escritorio-local.json
+servidor/evolution/.env
+whatsapp-qrcode.png
+whatsapp-qrcode.html
+abekyo-editor/node_modules/
+abekyo-editor/.next/
+abekyo-editor/public/uploads/
+*.zip
+whatsapp-evolution.txt

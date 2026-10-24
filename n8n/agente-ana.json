@@ -1,0 +1,704 @@
+{
+  "id": "escAna0000000001",
+  "name": "Escritório · Ana (Comercial)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escritorio/ana",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "4f9e039d-e588-4ac3-b30e-a858943927e7",
+      "name": "Pedido chega",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "5b99de2b-59ed-418e-862c-8e009378d6f9"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "dfd908c4-49b4-4c87-8e96-c5ce383593d9",
+      "name": "Recebido",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== configuração =====\nconst N8N = 'http://localhost:5678';   // endereço do n8n visto de dentro dele mesmo\nconst EVOLUTION_URL = 'http://evolution-api:8080';   // Evolution API vista de dentro do n8n (mesmo endereço que os fluxos do agente comercial usam)\nconst EVOLUTION_KEY = '';                              // apikey da Evolution (a mesma dos fluxos do agente comercial)\nconst INSTANCIA = 'cantinho-comercial';\nconst evolutionUrl = EVOLUTION_URL.replace(/\\/+$/, ''), evolutionKey = EVOLUTION_KEY, instancia = INSTANCIA;\n// ========================\nconst b = $json.body || {};\nconst card = String(b.card || '').slice(0, 40);   // cartão do kanban, quando o pedido veio de lá\nconst texto = String(b.texto || '').trim().slice(0, 4000);\nif (!texto) return [];\nconst de = String(b.de || 'wes').toLowerCase();\nconst quem = { wes: 'Wes (o dono)', fabio: 'Fábio (gestor)' }[de] || de;\nreturn [{ json: { n8n: N8N, agente: 'ana', texto, de, quem, card, evolutionUrl, evolutionKey, instancia } }];\n"
+      },
+      "id": "033b2a72-cbcd-4165-999e-04c7cdb47e24",
+      "name": "Preparar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Preparar').first().json.n8n }}/webhook/escritorio/evento",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ agente: $json.agente, status: 'trabalhando', tarefa: $json.texto, card: $json.card || undefined, mensagem: { de: $json.de, texto: $json.texto }, evento: 'recebeu de ' + $json.quem + ': ' + $json.texto }) }}"
+      },
+      "id": "3f9ea8fe-c983-4428-b5c4-37392f365f39",
+      "name": "Avisar: trabalhando",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Preparar').first().json.n8n }}/webhook/escritorio/estado",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "447e7776-ca5c-4803-91df-1a33f1a0cd66",
+      "name": "Ler estado do escritório",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Preparar').first().json.evolutionUrl }}/chat/findChats/{{ $('Preparar').first().json.instancia }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({}) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Preparar').first().json.evolutionKey }}"
+            }
+          ]
+        }
+      },
+      "id": "cedaf43c-3f2d-4427-8f93-ae1162e4d52a",
+      "name": "WhatsApp: conversas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('Preparar').first().json;\nconst est = ($('Ler estado do escritório').first().json || {}).body || {};\n// conversa recente com este agente (a última mensagem é o próprio pedido, que já foi registrado)\nconst conv = ((est.conversas || {})[p.agente] || []).slice(-11, -1);\nconst nomes = { wes: 'Wes', fabio: 'Fábio', ana: 'Ana', bruno: 'Bruno', carla: 'Carla', davi: 'Davi', eva: 'Eva' };\nconst historico = conv.map(m => `${nomes[m.de] || m.de}: ${m.texto}`).join('\\n') || '(sem conversa anterior)';\nconst equipe = Object.entries(est.agentes || {}).map(([id, a]) => `${nomes[id] || id}: ${a.status || '?'}${a.tarefa ? ' · ' + a.tarefa : ''}`).join('\\n') || '(sem dados)';\nconst agora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'full', timeStyle: 'short' });\nconst mural = (est.mural || []).map(n => `- ${n.texto} (${nomes[n.de] || n.de})`).join('\\n') || '(vazio)';\nconst abertas = (est.tarefas || []).filter(c => c.coluna === 'afazer' || c.coluna === 'fazendo').map(c => `- ${nomes[c.agente] || c.agente} · ${c.coluna === 'fazendo' ? 'fazendo' : 'a fazer'}: ${c.tarefa}`).join('\\n') || '(nenhuma)';\n// o que está aberto em cada tela do escritório agora\nconst telas = (est.telas || []).map(t => `- ${t.tela} · ${t.nome}: ` + ((t.guias || []).map(g => `${g.ativa ? '[na frente] ' : ''}${g.titulo || '(sem título)'} (${String(g.url || '').replace(/^https?:\\/\\//, '').slice(0, 60)})`).join(' | ') || 'vazia')\n    + (t.conteudo ? `\\n  conteúdo da guia da frente: ${t.conteudo.slice(0, 1500).replace(/\\n/g, ' ¶ ')}` : '')).join('\\n')\n  || '(o escritório está fechado agora, ou sem a extensão: sem telas)';\n// diagnóstico da equipe: o que está parado, há quanto tempo e por quê (o Fábio usa para explicar atrasos)\nconst agoraMs = Date.now(), minDe = t => Math.max(0, Math.round((agoraMs - new Date(t)) / 60000));\nconst reais = new Set(est.ativos || []), pend = est.comandos || [], diag = [];\nfor (const c of (est.tarefas || [])) {\n  const quem = nomes[c.agente] || c.agente, m = minDe(c.atualizado || c.criado);\n  if (c.coluna === 'fazendo') diag.push(`- ${quem} está fazendo “${c.tarefa}” há ${m} min` + (m < 5 ? '' : pend.some(x => x.agente === c.agente)\n    ? ' (demorando: esperando uma tela responder; o escritório precisa estar aberto no Chrome com a extensão)'\n    : ' (demorando: pode estar esperando a IA (Ollama) ou o editor de vídeo, ou travou; se passar de 10 min, mova o cartão para A fazer e peça de novo)'));\n  else if (c.coluna === 'afazer') diag.push(`- “${c.tarefa}” (${quem}) está parada em A fazer há ${m} min: ` + (reais.has(c.agente)\n    ? `ninguém pediu para ${quem} fazer agora (no kanban: “Pedir para ${quem} fazer agora”)` : `${quem} ainda não tem função no n8n`));\n  else if (c.coluna === 'erro' && m < 240) diag.push(`- “${c.tarefa}” (${quem}) não foi feita, deu erro há ${m} min: ${String(c.resultado || '').slice(0, 200)}`);\n}\nfor (const x of pend) if (minDe(x.t) >= 1) diag.push(`- ${nomes[x.agente] || x.agente} pediu para ${x.acao} na tela ${x.tela} e o escritório ainda não respondeu (está aberto no Chrome com a extensão?)`);\nif (!(est.telas || []).length) diag.push('- O escritório está fechado ou sem a extensão: ninguém consegue usar as telas agora.');\nconst diagnostico = diag.join('\\n') || '(tudo em dia: nenhuma tarefa parada, demorando ou com erro)';\n// instruções permanentes que o Wes ensinou (a este agente ou a todos)\nconst memorias = (est.memorias || []).filter(m => m.agente === p.agente || m.agente === 'todos').map(m => `- ${m.texto}`).join('\\n') || '(nenhuma ainda)';\n\n// ---- conversas do WhatsApp comercial: quem está esperando resposta e quem está no ponto de follow-up\nconst r = $('WhatsApp: conversas').first().json || {};\nconst lista = !p.evolutionUrl ? null : Array.isArray(r.body) ? r.body : Array.isArray(r.body && r.body.chats) ? r.body.chats : null;\nconst textoDe = m => { m = m || {}; return m.conversation || (m.extendedTextMessage || {}).text || (m.imageMessage || {}).caption || (m.videoMessage || {}).caption\n  || (m.audioMessage ? '[áudio]' : m.imageMessage ? '[imagem]' : m.documentMessage ? '[documento]' : m.stickerMessage ? '[figurinha]' : ''); };\nconst REGUA = [[14, 'R5'], [7, 'R4'], [4, 'R3'], [2, 'R2'], [1, 'R1']];\nconst agoraS = Date.now() / 1000;\nlet whatsapp;\nif (!lista) {\n  // sem a leitura direta (Evolution não configurada ou fora do ar): a Ana trabalha pelo WhatsApp Web aberto numa tela\n  whatsapp = '';\n} else {\n  const linhas = [], cont = { responder: 0, followup: 0 };\n  for (const c of lista) {\n    const jid = String(c.remoteJid || c.id || '');\n    if (!jid || /@g\\.us|@broadcast|@newsletter/.test(jid)) continue;\n    const lm = c.lastMessage || null;\n    const ts = Number(lm && lm.messageTimestamp) || (Date.parse(c.updatedAt) / 1000) || 0;\n    if (!ts) continue;\n    const dias = (agoraS - ts) / 86400;\n    if (dias > 30) continue;\n    const nome = c.pushName || (lm && lm.pushName) || jid.split('@')[0];\n    const fone = jid.endsWith('@s.whatsapp.net') ? jid.split('@')[0] : jid;\n    const ultimo = textoDe(lm && lm.message).replace(/\\s+/g, ' ').slice(0, 160);\n    const quando = dias < 1 ? `há ${Math.max(1, Math.round(dias * 24))}h` : `há ${Math.round(dias)} dia(s)`;\n    const doCliente = lm && lm.key && lm.key.fromMe === false;\n    if (doCliente) { cont.responder++; linhas.push({ p: 0, o: -dias, t: `- ESPERANDO RESPOSTA · ${nome}${fone ? ' (' + fone + ')' : ''} · cliente escreveu ${quando}: \"${ultimo}\"` }); }\n    else if (lm && lm.key && lm.key.fromMe) {\n      const r5 = REGUA.find(([d]) => dias >= d);\n      if (r5) { cont.followup++; linhas.push({ p: 1, o: -dias, t: `- FOLLOW-UP ${r5[1]} · ${nome}${fone ? ' (' + fone + ')' : ''} · nossa última mensagem ${quando}: \"${ultimo}\"` }); }\n    }\n  }\n  linhas.sort((a, b) => a.p - b.p || a.o - b.o);\n  whatsapp = `${lista.length} conversas lidas. ${cont.responder} esperando resposta, ${cont.followup} no ponto de follow-up (régua pelo tempo desde a nossa última mensagem).\\n`\n    + (linhas.slice(0, 30).map(l => l.t).join('\\n') || '(nenhuma conversa pendente)');\n}\nconst whatsappSecao = whatsapp ? `Conversas do WhatsApp comercial (leitura direta pela Evolution):\\n${whatsapp}\\n\\n` : '';\nreturn [{ json: { memorias, historico, equipe, agora, whatsappSecao, telas } }];\n"
+      },
+      "id": "3ac6f4cd-20a9-4a9c-9401-c11bbe0b9a1c",
+      "name": "Montar contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cérebros do preferido para o reserva (o instalador ajusta). Quem falhou há pouco fica de fora por um tempo.\nconst CEREBROS = [\"gpt-oss:120b-cloud\", \"deepseek-v3.1:671b-cloud\", \"qwen3-coder:480b-cloud\", \"gpt-oss:20b-cloud\", \"qwen2.5:7b\"];\nconst s = $getWorkflowStaticData('global'); s.fora = s.fora || {};\nconst agora = Date.now();\nconst livres = CEREBROS.filter(m => !(s.fora[m] > agora));\nconst tentados = $input.first().json.tentados || [];\nconst modelo = livres.find(m => !tentados.includes(m)) || CEREBROS.find(m => !tentados.includes(m)) || CEREBROS[0];\nreturn [{ json: Object.assign({}, $input.first().json, { modelo, tentados: tentados.concat(modelo) }) }];\n"
+      },
+      "id": "cac48c1e-6a68-4f2a-9726-0e83b93b8d4f",
+      "name": "Escolher cérebro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Agora: {{ $json.agora }}\n\n{{ $json.whatsappSecao }}Telas agora:\n{{ $json.telas }}\n\nInstruções permanentes do Wes (siga sempre):\n{{ $json.memorias }}\n\nConversa recente com você:\n{{ $json.historico }}\n\nPedido de {{ $('Preparar').first().json.quem }}:\n{{ $('Preparar').first().json.texto }}",
+        "options": {
+          "systemMessage": "Você é a Ana, agente comercial do Cantinho do Au Au (creche, hotel e banho e tosa de cães, em São Paulo). Você trabalha com a Mari, que é quem conversa com os clientes no WhatsApp comercial. Seu computador é o PC 1 (pc0).\n\nO que você faz:\n- Trabalha pelo WhatsApp Web aberto nos computadores do escritório (veja \"Telas agora\"): lê a lista de conversas e as mensagens, aponta quem está esperando resposta e quem está no ponto de follow-up. Quando houver leitura direta pela Evolution, ela também aparece no pedido (é a fonte mais confiável).\n- É proativa: ao receber um pedido sobre clientes, já lê as conversas, abre as que importam e entrega a lista com as mensagens prontas, sem perguntar antes. Quando o Wes pedir para \"responder\" alguém, entregue a resposta pronta para copiar e diga para quem é (nome e número).\n- Responde qualquer pergunta sobre o que está nas telas (por exemplo, quem mandou a última mensagem: é a primeira conversa da lista do WhatsApp).\n- Escreve as mensagens, prontas para o Wes aprovar e enviar com um clique (ou para a Mari copiar).\n- Régua de follow-up depois da nossa última mensagem sem resposta: R1 em D+1, R2 em D+2, R3 em D+4, R4 em D+7, R5 em D+14.\n\nRegras que não mudam:\n- Você não envia sozinha: quando o Wes pedir para mandar ou responder alguém (ou quando uma resposta for claramente necessária), prepare um cartão de envio. O Wes revisa e aperta \"Enviar\" no chat, e a mensagem sai pelo WhatsApp comercial (pela Evolution, sem usar as telas). Não use as telas para enviar.\n- Formato do cartão (um por mensagem, exatamente assim; o número só com dígitos, com DDI 55 e DDD, ou o identificador que aparece nas conversas da Evolution):\n[[enviar para=\"5511999998888\" nome=\"Nome do contato\"]]\ntexto da mensagem\n[[/enviar]]\n- Se não souber o número, procure nas conversas da Evolution ou no WhatsApp Web da tela; se não achar, pergunte ao Wes. Nunca diga que enviou: diga que está pronto para ele apertar Enviar.\n- Mensagens sugeridas: curtas, simpáticas, no tom de WhatsApp, sem inventar preço, promoção ou horário que não aparecem nos dados.\n- Priorize quem está esperando resposta (o cliente falou por último), do mais antigo para o mais novo.\n- Responda em português do Brasil. Para cada pessoa, um bloco curto separado por linha em branco: **nome (número)**, por que agir agora, e a mensagem sugerida numa linha própria começando com \"Mensagem:\".\n\nComo você trabalha:\n- Seja proativa(o): faça o trabalho em vez de perguntar \"quer que eu faça?\". Se o próximo passo é óbvio (ler, abrir, clicar, perguntar ao Claude), faça já. Pergunte só quando faltar uma informação que só o Wes tem.\n- Quando o Wes ensinar um jeito de trabalhar (\"a partir de agora\", \"sempre\", \"nunca mais\", \"lembre que\", \"da próxima vez\"), guarde com a ferramenta lembrar e siga daí em diante. O que já foi guardado aparece em \"Instruções permanentes do Wes\" e vale mais que o seu jeito padrão.\n- Em tarefa com várias etapas (usar telas, perguntar ao Claude, criar imagens), mande logo no começo um recado curto com avisar_wes dizendo o que vai fazer, e outro a cada descoberta importante. Assim o Wes acompanha. Não use avisar_wes para a resposta final.\n- Se uma ação falhar duas vezes do mesmo jeito, ou disser que está bloqueada ou não autorizada, não repita: pare e explique o que tentou e o que aconteceu.\n- Formato da resposta: frases curtas, um assunto por parágrafo (deixe uma linha em branco entre eles), listas com \"-\" uma por linha e **negrito** só no essencial (nomes, títulos). Não use tabelas.\n\nVocê trabalha usando os computadores do escritório:\n- Use as telas só quando o pedido precisa delas. Cumprimento (\"oi\", \"bom dia\"), conversa ou pergunta que você já sabe responder: responda direto, sem ferramenta.\n- O escritório 3D tem telas que são navegadores de verdade: os PCs (pc0 a pc5, chamados de \"PC 1\" a \"PC 6\"), a TV (tv) e o Spotify (spotify). Cada tela pode ter várias guias.\n- \"Telas agora\" mostra o que está aberto em cada tela E o conteúdo dela, lido há poucos segundos. Pergunta sobre o que tem numa tela (um vídeo no YouTube, uma conversa no WhatsApp, uma planilha): responda direto com esse conteúdo.\n- Para ver de novo, use a ferramenta ver_telas.\n- Para usar uma tela, use a ferramenta usar_tela com:\n  - tela: pc0…pc5, tv, spotify, \"PC 2\", ou o nome do site (ex.: \"whatsapp\" acha a tela que está com o WhatsApp aberto);\n  - acao: ler (lê o que está na tela), clicar (clica no texto ou no número do item da lista em alvo), rolar (alvo: baixo ou cima), abrir (alvo: endereço, abre numa guia nova), guia (alvo: número da guia), voltar, digitar (alvo: texto; nunca no WhatsApp), perguntar (alvo: o pedido completo; escreve na IA aberta na tela, como o Claude, envia e espera a resposta), esperar (alvo: segundos, até 90; depois lê a tela);\n  - alvo: o que a ação precisa.\n- Seu computador é o da sua mesa: use tela \"meu pc\".\n- Para fazer uma tarefa no Claude (claude.ai): no \"meu pc\", se o Claude ainda não estiver aberto, use abrir com alvo https://claude.ai/new; depois perguntar com alvo = o pedido completo e claro (o contexto todo, porque o Claude não vê esta conversa). A ferramenta espera o Claude terminar (até ~2 min) e devolve a resposta. Se vier \"ainda está respondendo\", use esperar e depois ler. No fim, conte ao Wes o que pediu ao Claude, o que ele respondeu e o que fez (resuma, e copie o essencial, como textos prontos e listas).\n- Depois de clicar, rolar ou abrir, a ferramenta já devolve a tela lida. Leia antes de responder: não invente o que está na tela.\n- A resposta final é sempre sua, em frases: nunca devolva só o texto da ferramenta. Se a tela não respondeu, diga qual tela, o que tentou e o que o Wes pode fazer (ex.: abrir o escritório, recarregar a guia).\n- Nunca diga que não consegue ver ou acessar algo sem antes conferir \"Telas agora\" e tentar usar_tela. Se no histórico você (ou alguém) disse que não conseguia, ignore: tente de novo agora, pelas telas.\n- Só se \"Telas agora\" disser que o escritório está fechado, explique que precisa do escritório aberto no Chrome com a extensão.\n- No WhatsApp você só lê. Nunca digite nem envie mensagem: quem envia para os clientes é a Mari (ou o Wes). Deixe a mensagem pronta para copiar.\n- Para ler uma conversa no WhatsApp Web: usar_tela com tela \"whatsapp\", acao \"clicar\" e alvo o nome do contato ou o número dele na lista (1 = a primeira conversa). A resposta já traz as mensagens.",
+          "maxIterations": 30,
+          "returnIntermediateSteps": true
+        }
+      },
+      "id": "a5ce67ec-3323-4219-ab7b-12b2b19ee0f9",
+      "name": "Ana pensa",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "={{ $json.modelo }}",
+        "options": {
+          "temperature": 0.4,
+          "numCtx": 16384,
+          "keepAlive": "30m"
+        }
+      },
+      "id": "16dae300-4775-4db2-8a3c-855cb761aa95",
+      "name": "Cérebro da Ana",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1420,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// o cérebro falhou: limite estourado ou fora do ar fica 30 min de fora; outro erro, 3 min. Tenta o próximo da lista.\nconst e = $json.error, msg = String(e && (e.message || e.description) || e || 'erro na IA');\nconst ctx = $('Escolher cérebro').last().json, s = $getWorkflowStaticData('global'); s.fora = s.fora || {};\nconst limite = /429|limit|quota|rate|unavailable|503|502|timeout|ECONNREFUSED|not found|unauthorized|401|403/i.test(msg);\ns.fora[ctx.modelo] = Date.now() + (limite ? 30 : 3) * 60000;\nconst CEREBROS = [\"gpt-oss:120b-cloud\", \"deepseek-v3.1:671b-cloud\", \"qwen3-coder:480b-cloud\", \"gpt-oss:20b-cloud\", \"qwen2.5:7b\"];\nconst resta = CEREBROS.some(m => !ctx.tentados.includes(m));\nconst erros = (ctx.erros || []).concat(`${ctx.modelo}: ${msg.slice(0, 120)}`);\nreturn [{ json: Object.assign({}, ctx, { tentarOutro: resta, erros, error: erros.join(' | ').slice(0, 600) }) }];\n"
+      },
+      "id": "d67e2c74-7d93-4457-ac7d-76f0ceade05a",
+      "name": "Trocar cérebro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "262f3b00-c586-419a-89ce-c93f05c51e00",
+              "leftValue": "={{ $json.tentarOutro }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9e17dd6f-400b-4859-8bf6-8ed0e116009d",
+      "name": "Tentar outro cérebro?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1960,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Mostra o que está aberto em cada tela do escritório (PCs, TV e Spotify): guias, sites e títulos.",
+        "method": "GET",
+        "url": "http://localhost:5678/webhook/escritorio/telas"
+      },
+      "id": "f1c4cbba-99b7-423c-8b96-77fe51222a97",
+      "name": "ver_telas",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Usa uma tela do escritório: lê, clica, rola, abre um endereço, troca de guia, volta, digita, pergunta à IA aberta na tela (como o Claude) e espera a resposta. Devolve o que ficou na tela.",
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/escritorio/tela",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "parametersBody": {
+          "values": [
+            {
+              "name": "agente",
+              "valueProvider": "fieldValue",
+              "value": "ana"
+            },
+            {
+              "name": "tela",
+              "valueProvider": "modelRequired"
+            },
+            {
+              "name": "acao",
+              "valueProvider": "modelRequired"
+            },
+            {
+              "name": "alvo",
+              "valueProvider": "modelOptional"
+            }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "tela",
+              "description": "qual tela: \"meu pc\", pc0 a pc5, tv, spotify, \"PC 2\" ou o nome do site aberto (ex.: whatsapp, claude)",
+              "type": "string"
+            },
+            {
+              "name": "acao",
+              "description": "ler, clicar, rolar, abrir, guia, voltar, digitar, perguntar ou esperar",
+              "type": "string"
+            },
+            {
+              "name": "alvo",
+              "description": "clicar: texto visível ou número do item da lista; rolar: baixo ou cima; abrir: endereço; guia: número; digitar: texto; perguntar: o pedido completo para a IA da tela; esperar: segundos",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "31904131-cec3-4921-8081-2287359ea63c",
+      "name": "usar_tela",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Guarda uma instrução permanente que o Wes ensinou (como fazer, o que sempre ou nunca fazer). Ela passa a valer em todos os próximos pedidos. Use uma frase clara e completa.",
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/escritorio/evento",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "parametersBody": {
+          "values": [
+            {
+              "name": "agente",
+              "valueProvider": "fieldValue",
+              "value": "memoria"
+            },
+            {
+              "name": "de",
+              "valueProvider": "fieldValue",
+              "value": "ana"
+            },
+            {
+              "name": "texto",
+              "valueProvider": "modelRequired"
+            }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "texto",
+              "description": "a instrução, numa frase clara (ex.: \"Sempre responder os clientes chamando pelo nome\")",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "f672adca-cebe-412d-9bfe-5456ed52222b",
+      "name": "lembrar",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1920,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Manda um recado curto para o Wes no meio da tarefa (o que você vai fazer agora ou o que já descobriu), sem terminar a tarefa.",
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/escritorio/evento",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "parametersBody": {
+          "values": [
+            {
+              "name": "agente",
+              "valueProvider": "fieldValue",
+              "value": "ana"
+            },
+            {
+              "name": "de",
+              "valueProvider": "fieldValue",
+              "value": "ana"
+            },
+            {
+              "name": "texto",
+              "valueProvider": "modelRequired"
+            }
+          ]
+        },
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "texto",
+              "description": "o recado, em uma ou duas frases",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "ec670386-49bd-4b24-8277-3515aee7ab48",
+      "name": "avisar_wes",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        2080,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// o agente parou por tentar demais: explica o que tentou, em vez de \"Agent stopped due to max iterations\"\nconst passos = ($json.intermediateSteps || []).slice(-4).map(x => `- ${x.action && x.action.tool}: ${String(JSON.stringify((x.action && x.action.toolInput) || '')).slice(0, 120)} → ${String(x.observation || '').replace(/\\s+/g, ' ').slice(0, 160)}`).join('\\n');\nconst parou = /max iterations|stopped due to/i.test(String($json.output || ''));\nconst textoParou = 'Parei porque tentei muitas vezes e não consegui terminar.' + (passos ? '\\n\\nMeus últimos passos:\\n' + passos : '') + '\\n\\nMe diga se quer que eu tente de outro jeito.';\n\nreturn [{ json: { resposta: parou ? textoParou : String($json.output || $json.text || '').trim() || 'Não consegui escrever uma resposta agora.' } }];\n"
+      },
+      "id": "f17e058c-9c2e-4acc-83dd-423901e98277",
+      "name": "Ler resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Preparar').first().json.n8n }}/webhook/escritorio/evento",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ card: $('Preparar').first().json.card || ($('Avisar: trabalhando').first().json.body || {}).id, agente: $('Preparar').first().json.agente, status: 'livre', tarefa: '', resultado: $json.resposta, mensagem: { de: $('Preparar').first().json.agente, texto: $json.resposta }, evento: 'terminou (cérebro: ' + ($('Escolher cérebro').isExecuted ? $('Escolher cérebro').last().json.modelo : '-') + '): ' + $('Preparar').first().json.texto }) }}"
+      },
+      "id": "869910e6-df75-4f8e-99fc-301be9356ee8",
+      "name": "Avisar: pronto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2040,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Preparar').first().json.n8n }}/webhook/escritorio/evento",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ card: $('Preparar').first().json.card || ($('Avisar: trabalhando').first().json.body || {}).id, agente: $('Preparar').first().json.agente, status: 'erro', tarefa: '', resultado: 'Não consegui terminar: ' + ($json.error && $json.error.message || $json.error || 'erro na IA'), mensagem: { de: $('Preparar').first().json.agente, texto: 'Não consegui terminar agora: nenhum cérebro (IA) respondeu. ' + (/401|unauthori|sign ?in/i.test(String($json.error || '')) ? 'Os modelos da nuvem do Ollama pedem login: rode o instalar.bat (ele abre o login do Ollama).' : /ECONNREFUSED|fetch failed|connect/i.test(String($json.error || '')) ? 'O Ollama está desligado: abra o Ollama ou o abrir-escritorio.bat.' : 'Tente de novo daqui a pouco.') + ' (' + String($json.error || '').slice(0, 160) + ')' }, evento: 'deu erro em: ' + $('Preparar').first().json.texto }) }}"
+      },
+      "id": "09d456b8-0bda-451e-8a93-7389bbba8843",
+      "name": "Avisar: erro",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1820,
+        260
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Pedido chega": {
+      "main": [
+        [
+          {
+            "node": "Recebido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recebido": {
+      "main": [
+        [
+          {
+            "node": "Preparar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar": {
+      "main": [
+        [
+          {
+            "node": "Avisar: trabalhando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar: trabalhando": {
+      "main": [
+        [
+          {
+            "node": "Ler estado do escritório",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler estado do escritório": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp: conversas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp: conversas": {
+      "main": [
+        [
+          {
+            "node": "Montar contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cérebro da Ana": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Ana pensa",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escolher cérebro": {
+      "main": [
+        [
+          {
+            "node": "Ana pensa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ana pensa": {
+      "main": [
+        [
+          {
+            "node": "Ler resposta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Trocar cérebro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trocar cérebro": {
+      "main": [
+        [
+          {
+            "node": "Tentar outro cérebro?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tentar outro cérebro?": {
+      "main": [
+        [
+          {
+            "node": "Escolher cérebro",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar: erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ver_telas": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ana pensa",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "usar_tela": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ana pensa",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "lembrar": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ana pensa",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "avisar_wes": {
+      "ai_tool": [
+        [
+          {
+            "node": "Ana pensa",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar contexto": {
+      "main": [
+        [
+          {
+            "node": "Escolher cérebro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler resposta": {
+      "main": [
+        [
+          {
+            "node": "Avisar: pronto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "executionTimeout": 900
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

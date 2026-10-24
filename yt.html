@@ -9,5 +9,29 @@
   const q = new URLSearchParams(location.search);
   const id = (q.get('v') || '').match(/^[\w-]{11}$/);
   const list = (q.get('list') || '').match(/^[\w-]+$/);
-  if (id) document.getElementById('p').src = `https://www.youtube.com/embed/${id[0]}?autoplay=1&rel=1&playsinline=1` + (list ? `&list=${list[0]}` : '');
+  const p = document.getElementById('p');
+  if (id) p.src = `https://www.youtube.com/embed/${id[0]}?autoplay=1&rel=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}` + (list ? `&list=${list[0]}` : '');
+  // volume pela distância: o escritório manda o volume e ele é repassado ao player do YouTube
+  let vol = null;
+  const yt = (func, args = []) => p.contentWindow && p.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), 'https://www.youtube.com');
+  const applyVol = () => { if (vol == null) return; p.contentWindow && p.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), 'https://www.youtube.com'); yt('setVolume', [Math.round(vol * 100)]); };
+  addEventListener('message', e => {
+    // o player do YouTube conta quando toca ou pausa: repassa ao escritório (mesa de som e alto-falante na guia)
+    if (e.origin === 'https://www.youtube.com') {
+      let d = null; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (err) {}
+      const st = d && d.info && d.info.playerState;
+      // o título do vídeo vira o título da guia (assim os agentes sabem o que está passando na TV)
+      const titulo = d && d.info && d.info.videoData && d.info.videoData.title;
+      if (titulo && document.title !== titulo) document.title = titulo;
+      if (typeof st === 'number' && parent !== window) parent.postMessage({ esc: 'tela', tocando: st === 1 }, location.origin);
+      return;
+    }
+    if (e.origin !== location.origin || !e.data || e.data.esc !== 'cmd') return;
+    if (e.data.cmd === 'pause') yt('pauseVideo');
+    if (e.data.cmd !== 'volume') return;
+    vol = Math.max(0, Math.min(1, +e.data.v || 0)); applyVol();
+  });
+  // pede ao player para contar quando toca ou pausa (e aplica o volume, se o escritório já mandou um)
+  p.addEventListener('load', () => { p.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), 'https://www.youtube.com'); applyVol(); });
+  setInterval(applyVol, 2000);
 </script>

@@ -1,0 +1,1432 @@
+{
+  "id": "escCentral000001",
+  "name": "Escritório · Central dos agentes",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "escritorio/estado",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "5c94f61f-d23c-4d01-bcbc-69de7651bf34",
+      "name": "Escritório pergunta o estado",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "897f982b-528e-4dc3-a235-dbace9d8bd7c"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "escritorio_registro",
+        "columns": {
+          "column": [
+            {
+              "name": "agente",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "tarefa",
+              "type": "string"
+            },
+            {
+              "name": "resultado",
+              "type": "string"
+            },
+            {
+              "name": "de",
+              "type": "string"
+            },
+            {
+              "name": "texto",
+              "type": "string"
+            },
+            {
+              "name": "evento",
+              "type": "string"
+            },
+            {
+              "name": "card",
+              "type": "string"
+            },
+            {
+              "name": "coluna",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "bcf3a432-67be-4190-889f-55c07adc1356",
+      "name": "Garantir a tabela",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_registro"
+        },
+        "operation": "get",
+        "limit": 400,
+        "orderBy": true,
+        "orderByColumn": "createdAt",
+        "orderByDirection": "DESC"
+      },
+      "id": "96330a4e-726f-4dcd-a52c-0bac81d67a53",
+      "name": "Últimos avisos",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_registro"
+        },
+        "operation": "get",
+        "returnAll": true,
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "agente",
+              "condition": "eq",
+              "keyValue": "memoria"
+            }
+          ]
+        }
+      },
+      "id": "06b1e306-1bec-4161-8258-bdc96008d2f8",
+      "name": "Instruções guardadas",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        550,
+        160
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "escritorio_comandos",
+        "columns": {
+          "column": [
+            {
+              "name": "agente",
+              "type": "string"
+            },
+            {
+              "name": "tela",
+              "type": "string"
+            },
+            {
+              "name": "acao",
+              "type": "string"
+            },
+            {
+              "name": "alvo",
+              "type": "string"
+            },
+            {
+              "name": "estado",
+              "type": "string"
+            },
+            {
+              "name": "resultado",
+              "type": "string"
+            },
+            {
+              "name": "ref",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "94291055-6847-423f-bf57-ce2987eb0995",
+      "name": "Garantir a tabela de comandos",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_comandos"
+        },
+        "operation": "get",
+        "limit": 60,
+        "orderBy": true,
+        "orderByColumn": "createdAt",
+        "orderByDirection": "DESC"
+      },
+      "id": "a8969d42-630a-4766-a89c-c9c07de0d4a4",
+      "name": "Comandos recentes",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        0
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Quando um agente novo ganhar fluxo no n8n, coloque o id dele aqui.\nconst AGENTES_REAIS = ['fabio', 'ana', 'carla'];\n// os avisos vêm do mais novo para o mais velho: aplica do mais velho para o mais novo\nconst recentes = $('Últimos avisos').all().map(i => i.json).filter(r => r && r.agente).reverse();\nconst vistos = new Set(recentes.map(r => r.id));\nconst guardadas = $('Instruções guardadas').all().map(i => i.json).filter(r => r && r.agente === 'memoria' && !vistos.has(r.id));\nconst linhas = guardadas.concat(recentes).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt) || a.id - b.id);\nconst agentes = {}, conversas = {}, eventos = [], tarefas = [], abertas = {};\nlet mural = [], memorias = [];\nconst COLUNAS = ['afazer', 'fazendo', 'feito', 'erro'];\nfor (const r of linhas) {\n  const t = new Date(r.createdAt).toISOString();\n  // mural de avisos: agente \"mural\"; texto = aviso, status = cor; coluna \"apagado\" tira o aviso do card indicado\n  // instruções permanentes: agente \"memoria\"; de = para quem (um agente ou \"todos\"); coluna \"apagado\" tira a do card indicado\n  if (r.agente === 'memoria') {\n    if (r.coluna === 'apagado') memorias = memorias.filter(n => n.id !== r.card);\n    else if (r.texto) memorias.push({ id: String(r.id), agente: r.de || 'todos', texto: r.texto, t });\n    continue;\n  }\n  if (r.agente === 'mural') {\n    if (r.coluna === 'apagado') mural = mural.filter(n => n.id !== r.card);\n    else if (r.texto) mural.push({ id: String(r.id), texto: r.texto, de: r.de || 'wes', cor: r.status || 'amarelo', t });\n    continue;\n  }\n  // cartão movido à mão no kanban\n  if (r.card && COLUNAS.includes(r.coluna)) {\n    const c = tarefas.find(x => x.id === r.card);\n    if (c) { c.coluna = r.coluna; c.atualizado = t; if (abertas[c.agente] === c && r.coluna !== 'fazendo' && r.coluna !== 'afazer') delete abertas[c.agente]; }\n    continue;\n  }\n  // kanban: \"trabalhando\" ou \"aguardando\" abre (ou move) um cartão; \"livre\" ou \"erro\" fecha o cartão aberto do agente\n  if ((r.status === 'trabalhando' || r.status === 'aguardando') && r.tarefa) {\n    const coluna = r.status === 'trabalhando' ? 'fazendo' : 'afazer';\n    let c = r.card ? tarefas.find(x => x.id === r.card) : null;\n    if (!c && abertas[r.agente] && abertas[r.agente].tarefa === r.tarefa) c = abertas[r.agente];\n    if (c) { c.coluna = coluna; c.atualizado = t; }\n    else { c = { id: String(r.id), agente: r.agente, tarefa: r.tarefa, de: r.de || '', coluna, criado: t, atualizado: t }; tarefas.push(c); }\n    abertas[r.agente] = c;\n  } else if (r.status === 'livre' || r.status === 'erro') {\n    // o agente diz qual cartão terminou; sem isso, fecha o último aberto dele\n    const c = (r.card && tarefas.find(x => x.id === r.card)) || abertas[r.agente];\n    if (c) { c.coluna = r.status === 'erro' ? 'erro' : 'feito'; c.resultado = r.resultado || ''; c.atualizado = t; }\n    if (abertas[r.agente] === c) delete abertas[r.agente];\n  }\n  const a = agentes[r.agente] = agentes[r.agente] || {};\n  // aviso só com mensagem (ex.: o Fábio avisando de um atraso) não muda o estado do agente\n  if (r.status) { a.status = r.status; a.atualizado = t; a.rev = r.id; }\n  if (r.tarefa != null) a.tarefa = r.tarefa;\n  if (r.resultado != null) a.resultado = r.resultado;\n  if (r.texto) (conversas[r.agente] = conversas[r.agente] || []).push({ de: r.de || 'wes', texto: r.texto, t });\n  if (r.evento) eventos.unshift({ t, agente: r.agente, texto: r.evento });\n}\nfor (const id in conversas) conversas[id] = conversas[id].slice(-40);\n// no kanban vão todas as abertas e as 30 fechadas mais recentes\nconst fechadas = tarefas.filter(c => c.coluna === 'feito' || c.coluna === 'erro').sort((x, y) => y.atualizado.localeCompare(x.atualizado)).slice(0, 30);\nconst kanban = tarefas.filter(c => c.coluna === 'afazer' || c.coluna === 'fazendo').concat(fechadas);\n// comandos dos agentes para as telas que o escritório ainda não respondeu (do último minuto e meio)\nconst cmds = $input.all().map(i => i.json).filter(r => r && r.estado);\nconst respondidos = new Set(cmds.filter(r => r.estado === 'resposta').map(r => String(r.ref)));\nconst comandos = cmds.filter(r => r.estado === 'pendente' && !respondidos.has(String(r.id)) && Date.now() - new Date(r.createdAt) < 90000)\n  .map(r => ({ id: String(r.id), agente: r.agente, tela: r.tela, acao: r.acao, alvo: r.alvo || '', t: new Date(r.createdAt).toISOString() })).reverse();\nconst telas = ($getWorkflowStaticData('global').telas || {}).telas || [];\nreturn [{ json: { versao: '2026.10.24-painel', ativos: AGENTES_REAIS, agentes, conversas, eventos: eventos.slice(0, 60), tarefas: kanban, mural: mural.slice(-24), memorias: memorias.slice(-60), telas, comandos, agora: new Date().toISOString() } }];\n"
+      },
+      "id": "9d99722d-f473-4496-a4f0-8216fa34517e",
+      "name": "Montar estado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "61c97c94-6d3a-47db-bf1a-4434f9584401",
+      "name": "Responder estado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escritorio/mapa",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "bbfbeca8-8dd1-4aa0-b896-9123f88f68f3",
+      "name": "Escritório conta o que está nas telas",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        600
+      ],
+      "webhookId": "064d8da9-a822-4d24-8919-833d0c10fd2f"
+    },
+    {
+      "parameters": {
+        "jsCode": "const s = $getWorkflowStaticData('global');\nlet telas = [];\ntry { telas = JSON.parse($json.body.mapa || '[]'); } catch (e) {}\ns.telas = { t: new Date().toISOString(), telas: Array.isArray(telas) ? telas.slice(0, 12).map(t => Object.assign(t, { conteudo: String(t.conteudo || '').slice(0, 2500) })) : [] };\nreturn [{ json: { ok: true } }];\n"
+      },
+      "id": "b78a0a90-6f93-4332-aa8d-a329fe6f596f",
+      "name": "Guardar mapa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "7b7faf9a-e37d-4d62-9c1b-4e390b91f36c",
+      "name": "Mapa guardado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        440,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "escritorio/telas",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "408396c6-1469-4519-8423-cd3d92491463",
+      "name": "Agente olha as telas",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        800
+      ],
+      "webhookId": "eb716770-5b19-4351-830c-6d29364f9f40"
+    },
+    {
+      "parameters": {
+        "jsCode": "const m = $getWorkflowStaticData('global').telas || {};\nconst telas = m.telas || [];\nif (!telas.length) return [{ json: { texto: 'O escritório não contou o que está nas telas (ele está fechado?).' } }];\nconst linhas = telas.map(t => `${t.tela} · ${t.nome}${t.mesa ? ' (mesa de ' + t.mesa + ')' : ''}\\n` + (t.guias || []).map(g =>\n  `   guia ${g.n}${g.ativa ? ' (na frente)' : ''}: ${g.titulo || '(sem título)'} — ${g.url}${g.tocando ? ' · tocando som' : ''}`).join('\\n')\n  + (t.conteudo ? `\\n   conteúdo da guia da frente:\\n   ${t.conteudo.replace(/\\n/g, '\\n   ')}` : ''));\nreturn [{ json: { texto: `Telas do escritório (atualizado ${m.t}):\\n` + linhas.join('\\n') } }];\n"
+      },
+      "id": "58de52cc-0548-4863-b898-4fed4e142ba8",
+      "name": "Descrever telas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.texto }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "03884a2e-570b-4645-917c-dd86af8f1746",
+      "name": "Mostrar telas",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        440,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escritorio/tela",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "28ad2a08-b717-42da-9ed3-c14b7463915c",
+      "name": "Agente usa uma tela",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        1000
+      ],
+      "webhookId": "7d4cc99d-ef9e-441d-b95d-782c57a47b9c"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "escritorio_comandos",
+        "columns": {
+          "column": [
+            {
+              "name": "agente",
+              "type": "string"
+            },
+            {
+              "name": "tela",
+              "type": "string"
+            },
+            {
+              "name": "acao",
+              "type": "string"
+            },
+            {
+              "name": "alvo",
+              "type": "string"
+            },
+            {
+              "name": "estado",
+              "type": "string"
+            },
+            {
+              "name": "resultado",
+              "type": "string"
+            },
+            {
+              "name": "ref",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "42398a6b-ec67-44fa-af37-e28af4b2350b",
+      "name": "Garantir a tabela de comandos (tela)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        1000
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $('Agente usa uma tela').first().json.body || {};\nconst t = (v, max) => String(v == null ? '' : v).trim().slice(0, max);\nreturn [{ json: { agente: t(b.agente, 20), tela: t(b.tela, 60), acao: t(b.acao, 20).toLowerCase(), alvo: t(b.alvo, 500), estado: 'pendente' } }];\n"
+      },
+      "id": "f8c82196-7f3b-48e8-b174-f890900f8f28",
+      "name": "Montar comando",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_comandos"
+        },
+        "operation": "insert",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f8d1fc05-283a-42f2-8a1d-50e51c763fd8",
+      "name": "Guardar comando",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "id": "da61607b-4843-4a36-b02a-30f58cd160aa",
+      "name": "Esperar o escritório",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        1000
+      ],
+      "webhookId": "c5ec66ec-4dae-4662-8178-a0eeea3b632f"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_comandos"
+        },
+        "operation": "get",
+        "limit": 60,
+        "orderBy": true,
+        "orderByColumn": "createdAt",
+        "orderByDirection": "DESC"
+      },
+      "id": "29c5f109-42c4-45ca-8df1-7c917ac6d0f5",
+      "name": "Respostas recentes",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        1000
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// espera o escritório responder: ~45 s numa ação comum; até ~3 min quando a IA da tela (Claude) está respondendo\nconst id = String($('Guardar comando').first().json.id), acao = $('Montar comando').first().json.acao;\nconst r = $input.all().map(i => i.json).find(x => x && x.estado === 'resposta' && String(x.ref) === id);\nif (r) return [{ json: { pronto: true, resultado: r.resultado || '(sem resposta)' } }];\nconst limite = acao === 'perguntar' ? 170 : acao === 'esperar' ? 110 : 44;\nif ($runIndex >= limite) return [{ json: { pronto: true, resultado: 'O escritório não respondeu: ele precisa estar aberto no Chrome, com a extensão, para usar as telas.' } }];\nreturn [{ json: { pronto: false } }];\n"
+      },
+      "id": "23058602-6055-4b76-8ce9-5bd8c507d28b",
+      "name": "Chegou a resposta?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1afcea8a-5ec1-4d76-b191-c55177f45616",
+              "leftValue": "={{ $json.pronto }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "33281b7b-f20e-440e-83c6-82f9f6860e4c",
+      "name": "Pronto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.resultado }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "0047e6e4-1165-41c7-991a-47a301760acf",
+      "name": "Devolver o resultado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1760,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escritorio/resposta",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "80f060f6-1ecf-43ea-8e90-d4ce8005b925",
+      "name": "Escritório devolve o resultado",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        1300
+      ],
+      "webhookId": "35550d0a-ed4b-47eb-abd4-688bb5c90add"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "escritorio_comandos",
+        "columns": {
+          "column": [
+            {
+              "name": "agente",
+              "type": "string"
+            },
+            {
+              "name": "tela",
+              "type": "string"
+            },
+            {
+              "name": "acao",
+              "type": "string"
+            },
+            {
+              "name": "alvo",
+              "type": "string"
+            },
+            {
+              "name": "estado",
+              "type": "string"
+            },
+            {
+              "name": "resultado",
+              "type": "string"
+            },
+            {
+              "name": "ref",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "c47f64bf-88e7-4335-b873-fdf92ad13507",
+      "name": "Garantir a tabela de comandos (resposta)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        1300
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $('Escritório devolve o resultado').first().json.body || {};\nreturn [{ json: { ref: String(b.ref || ''), estado: 'resposta', resultado: String(b.resultado || '').slice(0, 12000) } }];\n"
+      },
+      "id": "60ef0380-0787-407c-844b-58c51b3bc717",
+      "name": "Montar resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        1300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_comandos"
+        },
+        "operation": "insert",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "e2a4a9ca-4052-4d08-b857-d74e279aa894",
+      "name": "Guardar resposta",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        1300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "bb2c9b18-4990-4cd1-9e9e-0b0e4ae8e7fd",
+      "name": "Resposta guardada",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        880,
+        1300
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escritorio/evento",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "e9e9d52c-249c-42a9-91d3-9041c860140c",
+      "name": "Agente avisa o que está fazendo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "765aa3ad-e127-4a37-a335-9ec97d233a65"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "escritorio_registro",
+        "columns": {
+          "column": [
+            {
+              "name": "agente",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "tarefa",
+              "type": "string"
+            },
+            {
+              "name": "resultado",
+              "type": "string"
+            },
+            {
+              "name": "de",
+              "type": "string"
+            },
+            {
+              "name": "texto",
+              "type": "string"
+            },
+            {
+              "name": "evento",
+              "type": "string"
+            },
+            {
+              "name": "card",
+              "type": "string"
+            },
+            {
+              "name": "coluna",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "992086db-3f08-45bd-be57-3576e1ca33ac",
+      "name": "Garantir a tabela (aviso)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        300
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cada agente manda (JSON): { agente, status, tarefa, resultado, mensagem: { de, texto }, evento, card }\n// status: trabalhando | livre | erro | aguardando. Campo que não veio fica vazio e não muda nada.\n// O escritório manda como formulário, com de e texto soltos, e card + coluna para mexer no kanban e no mural.\nconst b = $('Agente avisa o que está fazendo').first().json.body || {};\nconst txt = (v, max) => v === undefined || v === null || v === '' ? null : String(v).slice(0, max);\nconst m = b.mensagem && b.mensagem.texto ? b.mensagem : b.texto ? { de: b.de, texto: b.texto } : null;\nreturn [{ json: {\n  card: txt(b.card, 40), coluna: txt(b.coluna, 20),\n  agente: String(b.agente || 'desconhecido').toLowerCase().replace(/[^a-z]/g, '') || 'desconhecido',\n  status: txt(b.status, 20), tarefa: txt(b.tarefa, 500), resultado: txt(b.resultado, 6000),\n  de: m ? String(m.de || 'wes').slice(0, 20) : null, texto: m ? String(m.texto).slice(0, 6000) : null, evento: txt(b.evento, 300),\n} }];\n"
+      },
+      "id": "a51bcc09-5089-4258-8bf9-a0c97cd50703",
+      "name": "Montar linha",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "escritorio_registro"
+        },
+        "operation": "insert",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "741f6b8c-cc0f-48d8-be0f-ecf534b9d6ec",
+      "name": "Guardar aviso",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, id: String($json.id) }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "e2c0247a-7ea1-4147-a7be-d97b95aa349b",
+      "name": "Confirmar",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "escritorio/whatsapp-enviar",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "9e4e9edc-5d0b-4a01-ac76-c3867a25d411",
+      "name": "Wes manda enviar no WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        1600
+      ],
+      "webhookId": "e3909b6c-01b6-4ac4-911a-9e1e2612f78d"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== configuração (o instalador preenche) =====\nconst EVOLUTION_URL = '';   // ex.: http://localhost:8080\nconst EVOLUTION_KEY = '';\nconst INSTANCIA = 'cantinho-comercial';\nconst CODIGO_ENVIO = '';    // código desta instalação: só o escritório conhece\n// =================================================\nconst b = $json.body || {};\nconst numero = String(b.numero || '').trim().replace(/[^0-9@a-z.]/gi, '');\nconst texto = String(b.texto || '').trim().slice(0, 3000);\nlet erro = '';\nif (!EVOLUTION_URL || !EVOLUTION_KEY) erro = 'a Evolution não está configurada (rode o instalar.bat)';\nelse if (!CODIGO_ENVIO || b.codigo !== CODIGO_ENVIO) erro = 'pedido de envio sem o código do escritório';\nelse if (!/^\\d{10,15}$|@/.test(numero)) erro = 'número inválido: ' + numero;\nelse if (!texto) erro = 'mensagem vazia';\nreturn [{ json: { ok: !erro, erro, numero, texto, nome: String(b.nome || '').slice(0, 80), url: `${EVOLUTION_URL}/message/sendText/${INSTANCIA}`, key: EVOLUTION_KEY } }];\n"
+      },
+      "id": "f7758809-8aae-44bc-836b-e5bc722e5874",
+      "name": "Conferir envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "005d4db2-86ec-40c5-a581-1e3e4b5b6783",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e9f2a06b-77d1-4ec1-ba0e-95176b40a276",
+      "name": "Pode enviar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.numero, text: $json.texto }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.key }}"
+            }
+          ]
+        }
+      },
+      "id": "888f90d0-3f0c-4b92-bda0-660bb7da43aa",
+      "name": "Enviar pela Evolution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        1540
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Conferir envio').first().json, r = $json;\nconst ok = (r.statusCode || 0) >= 200 && (r.statusCode || 0) < 300;\nconst erro = ok ? '' : 'a Evolution recusou (' + (r.statusCode || 'sem resposta') + '): ' + JSON.stringify(r.body || r.error || '').slice(0, 200);\nreturn [{ json: { ok, erro, numero: c.numero, nome: c.nome } }];\n"
+      },
+      "id": "a95309e2-61db-4668-a760-c23260e6ac89",
+      "name": "Resultado do envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        1540
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "508d7fb6-cfa9-49e9-be86-7aeaa8499a6c",
+      "name": "Envio: resposta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1100,
+        1540
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, erro: $json.erro }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "c6815403-404a-4f45-bade-2cb2ce3d4636",
+      "name": "Envio recusado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        1700
+      ]
+    }
+  ],
+  "connections": {
+    "Escritório pergunta o estado": {
+      "main": [
+        [
+          {
+            "node": "Garantir a tabela",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir a tabela": {
+      "main": [
+        [
+          {
+            "node": "Últimos avisos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Últimos avisos": {
+      "main": [
+        [
+          {
+            "node": "Instruções guardadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instruções guardadas": {
+      "main": [
+        [
+          {
+            "node": "Garantir a tabela de comandos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir a tabela de comandos": {
+      "main": [
+        [
+          {
+            "node": "Comandos recentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comandos recentes": {
+      "main": [
+        [
+          {
+            "node": "Montar estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar estado": {
+      "main": [
+        [
+          {
+            "node": "Responder estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escritório conta o que está nas telas": {
+      "main": [
+        [
+          {
+            "node": "Guardar mapa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar mapa": {
+      "main": [
+        [
+          {
+            "node": "Mapa guardado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente olha as telas": {
+      "main": [
+        [
+          {
+            "node": "Descrever telas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descrever telas": {
+      "main": [
+        [
+          {
+            "node": "Mostrar telas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente usa uma tela": {
+      "main": [
+        [
+          {
+            "node": "Garantir a tabela de comandos (tela)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir a tabela de comandos (tela)": {
+      "main": [
+        [
+          {
+            "node": "Montar comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar comando": {
+      "main": [
+        [
+          {
+            "node": "Guardar comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar comando": {
+      "main": [
+        [
+          {
+            "node": "Esperar o escritório",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar o escritório": {
+      "main": [
+        [
+          {
+            "node": "Respostas recentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respostas recentes": {
+      "main": [
+        [
+          {
+            "node": "Chegou a resposta?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chegou a resposta?": {
+      "main": [
+        [
+          {
+            "node": "Pronto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pronto?": {
+      "main": [
+        [
+          {
+            "node": "Devolver o resultado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Esperar o escritório",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escritório devolve o resultado": {
+      "main": [
+        [
+          {
+            "node": "Garantir a tabela de comandos (resposta)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir a tabela de comandos (resposta)": {
+      "main": [
+        [
+          {
+            "node": "Montar resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar resposta": {
+      "main": [
+        [
+          {
+            "node": "Guardar resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar resposta": {
+      "main": [
+        [
+          {
+            "node": "Resposta guardada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente avisa o que está fazendo": {
+      "main": [
+        [
+          {
+            "node": "Garantir a tabela (aviso)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir a tabela (aviso)": {
+      "main": [
+        [
+          {
+            "node": "Montar linha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar linha": {
+      "main": [
+        [
+          {
+            "node": "Guardar aviso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar aviso": {
+      "main": [
+        [
+          {
+            "node": "Confirmar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wes manda enviar no WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Conferir envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conferir envio": {
+      "main": [
+        [
+          {
+            "node": "Pode enviar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pode enviar?": {
+      "main": [
+        [
+          {
+            "node": "Enviar pela Evolution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Envio recusado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar pela Evolution": {
+      "main": [
+        [
+          {
+            "node": "Resultado do envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado do envio": {
+      "main": [
+        [
+          {
+            "node": "Envio: resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
